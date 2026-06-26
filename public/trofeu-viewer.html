@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Trofeu WNBF — Visualizador</title>
+  <style>
+    html,body{margin:0;height:100%;background:#151515;font-family:system-ui,sans-serif}
+    canvas{display:block}
+    #hint{position:fixed;left:12px;top:12px;color:#cbd5e1;font-size:12px;
+      background:rgba(0,0,0,.5);padding:8px 12px;border-radius:8px;line-height:1.5}
+    #err{position:fixed;left:12px;bottom:12px;color:#fca5a5;font-size:12px;
+      background:rgba(0,0,0,.6);padding:8px 12px;border-radius:8px;max-width:80vw}
+  </style>
+</head>
+<body>
+<div id="hint">Arraste para girar · scroll para zoom · botão direito para mover</div>
+<div id="err"></div>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.180.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.180.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const MODEL_URL = '/models/trofeu_wnbf_2024.glb';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x151515);
+const camera = new THREE.PerspectiveCamera(34, innerWidth / innerHeight, 0.01, 100);
+camera.position.set(0, 2.4, 8.2);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 2.2, 0);
+controls.enableDamping = true;
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x382510, 2.4));
+const key = new THREE.DirectionalLight(0xffffff, 3.0);
+key.position.set(3, 5, 5);
+scene.add(key);
+const rim = new THREE.DirectionalLight(0xd8b36a, 2.0);
+rim.position.set(-4, 3, -2);
+scene.add(rim);
+
+new GLTFLoader().load(MODEL_URL, (gltf) => {
+  const trophy = gltf.scene;
+  trophy.traverse((obj) => { if (obj.isMesh) { obj.castShadow = true; obj.receiveShadow = true; } });
+  scene.add(trophy);
+
+  // enquadra a câmera automaticamente no modelo
+  const box = new THREE.Box3().setFromObject(trophy);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  controls.target.copy(center);
+  const maxDim = Math.max(size.x, size.y, size.z);
+  camera.position.set(center.x, center.y + size.y * 0.15, center.z + maxDim * 2.2);
+  camera.near = maxDim / 100; camera.far = maxDim * 50; camera.updateProjectionMatrix();
+}, undefined, (e) => {
+  document.getElementById('err').textContent =
+    'Erro ao carregar ' + MODEL_URL + ' — confirme que o arquivo está em public/models/. ' + (e?.message || e);
+  console.error(e);
+});
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+</script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+# Dependências
+node_modules/
+
+# Build
+dist/
+dist-ssr/
+
+# Fontes pesados — NÃO versionar (usar as versões otimizadas em public/)
+/Atletas/
+/Imagens/
+
+# Logs / ambiente
+*.log
+.env
+.env.*
+!.env.example
+
+# Sistema / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
