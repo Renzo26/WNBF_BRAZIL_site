@@ -1,0 +1,12 @@
+node_modules
+dist
+dist-ssr
+.git
+.vscode
+.idea
+*.local
+npm-debug.log*
+README.md
+assets-src
+scripts
+Materias_apoio.md

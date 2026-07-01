@@ -6,12 +6,10 @@ import Nav from './components/Nav'
 import StickyCTA from './components/StickyCTA'
 import {
   Arrow,
-  Countdown,
   Eyebrow,
   GhostButton,
   GoldButton,
   Reveal,
-  ScrollLink,
   SplitWords,
   StaggerList,
 } from './components/ui'
@@ -34,11 +32,17 @@ function HeroVideo() {
   useEffect(() => {
     const v = ref.current
     if (!v) return
-    const start = () => v.play().catch(() => {})
-    // Se já estiver pronto, toca; senão espera carregar o suficiente
-    if (v.readyState >= 3) start()
-    else v.addEventListener('canplaythrough', start, { once: true })
-    return () => v.removeEventListener('canplaythrough', start)
+    // Só começa a baixar o vídeo depois que a página carrega (não compete com o
+    // LCP; o poster aparece de imediato). Em conexões lentas o poster permanece.
+    const start = () => {
+      v.preload = 'auto'
+      v.play().catch(() => {})
+    }
+    if (document.readyState === 'complete') start()
+    else {
+      window.addEventListener('load', start, { once: true })
+      return () => window.removeEventListener('load', start)
+    }
   }, [])
 
   return (
@@ -49,7 +53,7 @@ function HeroVideo() {
       muted
       loop
       playsInline
-      preload="auto"
+      preload="none"
       aria-hidden
       tabIndex={-1}
     >
@@ -113,7 +117,7 @@ function Hero() {
           <div
             id="emblem-anchor"
             aria-hidden
-            className="pointer-events-none absolute"
+            className="pointer-events-auto absolute z-20 cursor-pointer"
             style={{ left: '21.6%', top: '0%', width: '56.8%', height: '56.5%' }}
           />
           <img
@@ -126,37 +130,15 @@ function Hero() {
         <SplitWords
           as="p"
           text="Onde o físico natural é provado"
-          className="mt-5 max-w-3xl text-[clamp(1.7rem,4.6vw,3.4rem)] leading-[0.95]"
+          className="mt-5 max-w-2xl text-[clamp(1.05rem,2.4vw,1.75rem)] leading-[0.95]"
           stagger={0.08}
           delay={0.4}
         />
-        <p className="hero-fade mt-3 max-w-2xl font-serif text-[clamp(0.95rem,1.9vw,1.35rem)] italic text-green-metal">
-          Sem atalhos. Sem desculpa. Só físico de verdade.
-        </p>
 
-        <p className="hero-fade mt-4 max-w-xl text-sm text-[var(--color-muted)] sm:text-base">
-          Dois dias com o <strong className="text-[var(--color-bone)]">{EVENT.championship}</strong>, a maior expo
-          fitness do país e a elite <strong className="text-[var(--color-green-hi)]">100% drug-free</strong> no mesmo
-          palco.
-        </p>
-
-        <div className="hero-fade mt-6 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-          <GoldButton href={TICKET_URL} className="group">
+        <div className="hero-fade mt-7">
+          <GoldButton href={TICKET_URL} size="sm" className="group">
             Garantir ingresso — 1º lote <Arrow />
           </GoldButton>
-          <ScrollLink
-            to="#categorias"
-            className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--color-line)] px-7 py-4 font-display uppercase tracking-wide text-[var(--color-bone)] transition-colors duration-300 hover:border-[var(--color-green)] hover:text-[var(--color-green-hi)]"
-          >
-            Ver categorias
-          </ScrollLink>
-        </div>
-
-        <div className="hero-fade mt-7 flex flex-col items-center gap-3">
-          <span className="font-mono text-[0.65rem] uppercase tracking-[0.25em] text-[var(--color-muted)]">
-            O 1º lote começa a esgotar em
-          </span>
-          <Countdown />
         </div>
       </div>
 
@@ -211,7 +193,7 @@ function Evento() {
     },
   ]
   return (
-    <section id="evento" className="theme-light">
+    <section id="evento">
       <div className="mx-auto max-w-7xl px-5 py-24 sm:px-8 sm:py-32">
       <div className="grid gap-14 lg:grid-cols-[1fr_1.1fr] lg:gap-20">
         <div>
@@ -250,12 +232,6 @@ function Evento() {
               </span>
             </article>
           ))}
-          <div className="flex items-center justify-between rounded-2xl border border-dashed border-[var(--color-line)] bg-[var(--color-ink-2)] px-6 py-5">
-            <span className="font-mono text-[0.65rem] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-              [ slot p/ vídeo dos atletas no palco — Drive ]
-            </span>
-            <span className="text-[var(--color-green-deep)]">▶</span>
-          </div>
         </StaggerList>
       </div>
       </div>
@@ -296,6 +272,15 @@ function Natural() {
   return (
     <section id="natural" className="relative overflow-hidden border-y border-[var(--color-line)] bg-navy-glass">
       <div className="pointer-events-none absolute inset-0 vignette opacity-60" />
+      {/* Selo WNBF: logo novo como marca d'água atrás dos elementos à direita */}
+      <img
+        src="/brand/wnbf-logo.png"
+        alt=""
+        aria-hidden
+        loading="lazy"
+        decoding="async"
+        className="pointer-events-none absolute -right-10 top-1/2 w-[min(56vw,640px)] max-w-none -translate-y-1/2 select-none opacity-[0.06] mix-blend-screen sm:-right-20 lg:-right-24"
+      />
       <div className="relative mx-auto max-w-7xl px-5 py-24 sm:px-8 sm:py-32">
         <Reveal>
           <Eyebrow>100% Natural</Eyebrow>
@@ -303,14 +288,11 @@ function Natural() {
         <div className="mt-6 grid gap-10 lg:grid-cols-[1.2fr_1fr] lg:items-end">
           <SplitWords text="Não é natural só no nome" className="text-[clamp(2.4rem,6vw,5rem)]" />
           <Reveal delay={0.1}>
-            <div className="flex items-start gap-5">
-              <img src="/brand/wnbf-brazil.png" alt="WNBF Brazil" className="hidden h-24 w-auto shrink-0 sm:block" />
-              <p className="text-[var(--color-muted)]">
-                Enquanto outros palcos fecham os olhos, a WNBF testa{' '}
-                <strong className="text-[var(--color-bone)]">absolutamente todos</strong>. Aqui, cada músculo conta uma
-                história de disciplina — não de farmácia. É por isso que um troféu WNBF vale o que vale.
-              </p>
-            </div>
+            <p className="text-[var(--color-muted)]">
+              Enquanto outros palcos fecham os olhos, a WNBF testa{' '}
+              <strong className="text-[var(--color-bone)]">absolutamente todos</strong>. Aqui, cada músculo conta uma
+              história de disciplina — não de farmácia. É por isso que um troféu WNBF vale o que vale.
+            </p>
           </Reveal>
         </div>
 
@@ -393,6 +375,8 @@ function Categorias() {
                   <img
                     src={c.image}
                     alt={`Atleta ${c.name}`}
+                    loading="lazy"
+                    decoding="async"
                     className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                     style={{ objectPosition: c.photoPosition }}
                   />
@@ -543,7 +527,7 @@ function FaqItem({ item, open, onClick }) {
 function Faq() {
   const [open, setOpen] = useState(0)
   return (
-    <section className="border-t border-[var(--color-line)] bg-navy-glass">
+    <section className="theme-light border-t border-[var(--color-line)]">
       <div className="mx-auto grid max-w-7xl gap-12 px-5 py-24 sm:px-8 sm:py-28 lg:grid-cols-[0.8fr_1.2fr]">
         <div>
           <Reveal>
@@ -608,7 +592,7 @@ function Footer() {
           <img src="/brand/natural-fitness-white.svg" alt="Natural Fitness & Health Brasil" className="w-48" />
           <span className="hidden h-12 w-px bg-[var(--color-line)] sm:block" />
           <div className="flex items-center gap-3">
-            <img src="/brand/wnbf-brazil.png" alt="WNBF Brazil" className="h-14 w-auto" />
+            <img src="/brand/wnbf-brazil.webp" alt="WNBF Brazil" loading="lazy" decoding="async" className="h-14 w-auto" />
             <div>
               <p className="font-display text-lg uppercase leading-none text-[var(--color-bone)]">
                 WNBF <span className="text-green-metal">Brasil</span>
@@ -643,12 +627,12 @@ export default function App() {
       <Nav />
       <main>
         <Hero />
+        <Ingressos />
         <Marquee />
         <Evento />
         <Natural />
         <Categorias />
         <ParaQuem />
-        <Ingressos />
         <Faq />
         <FinalCTA />
       </main>

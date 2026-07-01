@@ -18,51 +18,57 @@ export const TICKET_URL =
 
 export const WHATSAPP_URL = 'https://wnbfbrazil.com.br/' // [TROCAR pelo WhatsApp de expositores]
 
-// Lotes de ingresso — [CONFIRMAR preços reais do 1º lote]
+// Lotes de ingresso — 1º lote (preços reais da bilheteria Uticket)
 export const TICKETS = [
   {
-    tier: 'Lote 01',
-    name: 'Plateia',
-    price: 'R$ 89',
-    note: 'Preço de abertura',
-    perks: ['Acesso aos dois dias', 'Arquibancada geral', 'Entrada na Expo Natural Fitness'],
+    tier: '10 Out · Sábado',
+    name: 'Ingresso Dia 1',
+    price: 'R$ 114',
+    note: '1º lote · + taxa',
+    perks: [
+      'Acesso ao dia 10/10',
+      'Eliminatórias por categoria',
+      'Entrada na Expo Natural Fitness',
+      'Parcele em até 12x',
+    ],
     featured: false,
   },
   {
-    tier: 'Lote 01',
-    name: 'Premium',
+    tier: '10 + 11 Out · Os 2 dias',
+    name: 'Passaporte 2 Dias',
     price: 'R$ 189',
-    note: 'O mais procurado',
+    note: '1º lote · + taxa',
     perks: [
-      'Acesso aos dois dias',
-      'Cadeira numerada perto do palco',
-      'Expo + área de ativações',
-      'Brinde oficial do evento',
+      'Acesso aos dois dias — 10 e 11/10',
+      'Eliminatórias, finais e entrega de Pro Cards',
+      'Expo Natural Fitness completa',
+      'Melhor custo-benefício',
+      'Parcele em até 12x',
     ],
     featured: true,
   },
   {
-    tier: 'Lote 01',
-    name: 'Front Row VIP',
-    price: 'R$ 349',
-    note: 'Vagas muito limitadas',
+    tier: '11 Out · Domingo',
+    name: 'Ingresso Dia 2',
+    price: 'R$ 114',
+    note: '1º lote · + taxa',
     perks: [
-      'Primeira fileira, a metros do palco',
-      'Credencial VIP + acesso prioritário',
-      'Kit exclusivo do atleta',
-      'Meet & greet com atletas Pro',
+      'Acesso ao dia 11/10',
+      'Finais & entrega de Pro Cards',
+      'Entrada na Expo Natural Fitness',
+      'Parcele em até 12x',
     ],
     featured: false,
   },
 ]
 
 export const CATEGORIES = [
-  { name: 'Bodybuilding', kicker: 'Massa & densidade', n: '01', image: '/atletas/body.jpg', photoPosition: 'center top' },
-  { name: "Men's Physique", kicker: 'Estética & proporção', n: '02', image: '/atletas/MensV2.jpg', photoPosition: 'center top' },
-  { name: 'Classic Physique', kicker: 'A era de ouro', n: '03', image: '/atletas/Classic.jpg', photoPosition: 'center 20%' },
-  { name: 'Bikini', kicker: 'Tônus & elegância', n: '04', image: '/atletas/Bikini.jpg', photoPosition: 'center 20%' },
-  { name: 'Figure', kicker: 'Linhas & simetria', n: '05', image: '/atletas/Figure.jpg', photoPosition: 'center 20%' },
-  { name: 'Wellness', kicker: 'Curvas & equilíbrio', n: '06', image: '/atletas/Welness.jpg', photoPosition: 'center top' },
+  { name: 'Bodybuilding', kicker: 'Massa & densidade', n: '01', image: '/atletas/body.webp', photoPosition: 'center top' },
+  { name: "Men's Physique", kicker: 'Estética & proporção', n: '02', image: '/atletas/MensV2.webp', photoPosition: 'center top' },
+  { name: 'Classic Physique', kicker: 'A era de ouro', n: '03', image: '/atletas/Classic.webp', photoPosition: 'center 20%' },
+  { name: 'Bikini', kicker: 'Tônus & elegância', n: '04', image: '/atletas/Bikini.webp', photoPosition: 'center 20%' },
+  { name: 'Figure', kicker: 'Linhas & simetria', n: '05', image: '/atletas/Figure.webp', photoPosition: 'center 20%' },
+  { name: 'Wellness', kicker: 'Curvas & equilíbrio', n: '06', image: '/atletas/Welness.webp', photoPosition: 'center top' },
 ]
 
 export const FAQ = [
