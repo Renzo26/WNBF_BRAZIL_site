@@ -14,6 +14,7 @@ import {
   StaggerList,
 } from './components/ui'
 import { useSmoothScroll } from './lib/smooth'
+import { useRichVisuals } from './lib/device'
 import { CATEGORIES, EVENT, FAQ, TICKETS, TICKET_URL, WHATSAPP_URL } from './data'
 
 // Emblema 3D flutuante (carregado sob demanda — code splitting)
@@ -26,10 +27,11 @@ gsap.registerPlugin(ScrollTrigger, useGSAP)
    ===================================================================== */
 /* Vídeo de fundo: mostra o poster imediatamente e só inicia a reprodução
    quando o vídeo tem buffer suficiente (estratégia de performance). */
-function HeroVideo() {
+function HeroVideo({ enabled }) {
   const ref = useRef(null)
 
   useEffect(() => {
+    if (!enabled) return
     const v = ref.current
     if (!v) return
     // Só começa a baixar o vídeo depois que a página carrega (não compete com o
@@ -43,7 +45,21 @@ function HeroVideo() {
       window.addEventListener('load', start, { once: true })
       return () => window.removeEventListener('load', start)
     }
-  }, [])
+  }, [enabled])
+
+  // Mobile / reduced-motion: apenas o poster (primeiro frame), sem baixar o
+  // vídeo de ~13 MB nem pagar o custo de decodificação.
+  if (!enabled) {
+    return (
+      <img
+        src="/video/hero-poster.webp"
+        alt=""
+        aria-hidden
+        fetchPriority="high"
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+    )
+  }
 
   return (
     <video
@@ -62,7 +78,7 @@ function HeroVideo() {
   )
 }
 
-function Hero() {
+function Hero({ rich }) {
   const scope = useRef(null)
   const sceneRef = useRef(null)
 
@@ -93,7 +109,7 @@ function Hero() {
   return (
     <section ref={scope} id="top" className="relative min-h-[100svh] overflow-hidden">
       <div ref={sceneRef} className="absolute inset-0">
-        <HeroVideo />
+        <HeroVideo enabled={rich} />
         {/* scrim neutro leve (sem tom azul) só para o título/logo ficarem legíveis */}
         <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.38)_0%,rgba(0,0,0,0.12)_38%,rgba(0,0,0,0.34)_100%)]" />
         {/* brilho verde da marca */}
@@ -114,12 +130,22 @@ function Hero() {
         {/* Lockup do Hero: o emblema (topo) é renderizado em 3D sobre a âncora;
             apenas o texto NATURAL FITNESS & HEALTH BRASIL fica como imagem 2D. */}
         <div className="hero-fade relative mt-5 aspect-[755.25/557.1] w-[clamp(190px,32vw,380px)]">
-          <div
-            id="emblem-anchor"
-            aria-hidden
-            className="pointer-events-auto absolute z-20 cursor-pointer"
-            style={{ left: '21.6%', top: '0%', width: '56.8%', height: '56.5%' }}
-          />
+          {rich ? (
+            <div
+              id="emblem-anchor"
+              aria-hidden
+              className="pointer-events-auto absolute z-20 cursor-pointer"
+              style={{ left: '21.6%', top: '0%', width: '56.8%', height: '56.5%' }}
+            />
+          ) : (
+            /* Sem WebGL: emblema estático (mesmo viewBox do lockup). */
+            <img
+              src="/brand/emblem.svg"
+              alt=""
+              aria-hidden
+              className="absolute inset-0 h-full w-full object-contain drop-shadow-[0_0_28px_rgba(134,198,60,0.28)]"
+            />
+          )}
           <img
             src="/brand/natural-fitness-text.svg"
             alt="Natural Fitness & Health Brasil"
@@ -622,11 +648,12 @@ function Footer() {
    ===================================================================== */
 export default function App() {
   useSmoothScroll()
+  const rich = useRichVisuals()
   return (
     <div className="grain relative">
       <Nav />
       <main>
-        <Hero />
+        <Hero rich={rich} />
         <Ingressos />
         <Marquee />
         <Evento />
@@ -638,9 +665,13 @@ export default function App() {
       </main>
       <Footer />
       <StickyCTA />
-      <Suspense fallback={null}>
-        <FloatingEmblem />
-      </Suspense>
+      {/* Emblema 3D (WebGL) só no desktop: em mobile o loop de render derruba o
+          TBT. Lá usamos o emblema estático em SVG (ver Hero). */}
+      {rich && (
+        <Suspense fallback={null}>
+          <FloatingEmblem />
+        </Suspense>
+      )}
     </div>
   )
 }
