@@ -49,7 +49,7 @@ function HeroVideo() {
     <video
       ref={ref}
       className="absolute inset-0 h-full w-full object-cover"
-      poster="/video/hero-poster.jpg"
+      poster="/video/hero-poster.webp"
       muted
       loop
       playsInline
