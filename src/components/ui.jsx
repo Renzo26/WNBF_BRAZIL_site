@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
+import { useNavigate } from 'react-router-dom'
 import { EVENT } from '../data'
 import { scrollTo } from '../lib/smooth'
 
@@ -118,12 +119,31 @@ export function Arrow() {
   )
 }
 
+/* Interpreta o href e devolve um onClick com o comportamento certo:
+   - "#..."  → scroll suave (Lenis) até a seção
+   - "/..."  → navegação client-side da SPA (sem recarregar)
+   - "http…" → link externo normal (abre em nova aba) */
+function useSmartHref(href, onClick) {
+  const navigate = useNavigate()
+  return (e) => {
+    if (href?.startsWith('#')) {
+      e.preventDefault()
+      scrollTo(href)
+    } else if (href?.startsWith('/')) {
+      e.preventDefault()
+      navigate(href)
+    }
+    onClick?.(e)
+  }
+}
+
 export function GoldButton({ href, children, className = '', size = 'lg', onClick }) {
   const pad = size === 'lg' ? 'px-9 py-4 text-base' : 'px-6 py-3 text-sm'
+  const handleClick = useSmartHref(href, onClick)
   return (
     <a
       href={href}
-      onClick={onClick}
+      onClick={handleClick}
       target={href?.startsWith('http') ? '_blank' : undefined}
       rel="noopener noreferrer"
       className={`group relative inline-flex items-center justify-center gap-3 overflow-hidden rounded-full font-display uppercase tracking-wide text-[#07172e] shadow-green ${pad} ${className}`}
@@ -139,10 +159,11 @@ export function GoldButton({ href, children, className = '', size = 'lg', onClic
 }
 
 export function GhostButton({ href, children, className = '', onClick }) {
+  const handleClick = useSmartHref(href, onClick)
   return (
     <a
       href={href}
-      onClick={onClick}
+      onClick={handleClick}
       target={href?.startsWith('http') ? '_blank' : undefined}
       rel="noopener noreferrer"
       className={`inline-flex items-center justify-center gap-2 rounded-full border border-[var(--color-line)] px-7 py-4 font-display uppercase tracking-wide text-[var(--color-bone)] transition-colors duration-300 hover:border-[var(--color-green)] hover:text-[var(--color-green-hi)] ${className}`}

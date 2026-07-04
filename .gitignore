@@ -16,6 +16,14 @@ assets-src/
 .env.*
 !.env.example
 
+# Segredos — credenciais do banco (NUNCA versionar)
+conexion_db.md
+
+# Python / backend
+.venv/
+__pycache__/
+*.pyc
+
 # Sistema / editor
 .DS_Store
 Thumbs.db

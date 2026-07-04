@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
@@ -13,9 +14,9 @@ import {
   SplitWords,
   StaggerList,
 } from './components/ui'
-import { useSmoothScroll } from './lib/smooth'
+import { scrollTo, useSmoothScroll } from './lib/smooth'
 import { useRichVisuals } from './lib/device'
-import { CATEGORIES, EVENT, FAQ, TICKETS, TICKET_URL, WHATSAPP_URL } from './data'
+import { CATEGORIES, EVENT, FAQ, LOCATION, TICKETS, WHATSAPP_URL, getMapLinks } from './data'
 
 // Emblema 3D flutuante (carregado sob demanda — code splitting)
 const FloatingEmblem = lazy(() => import('./three/FloatingEmblem'))
@@ -162,7 +163,7 @@ function Hero({ rich }) {
         />
 
         <div className="hero-fade mt-7">
-          <GoldButton href={TICKET_URL} size="sm" className="group">
+          <GoldButton href="#ingressos" size="sm" className="group">
             Garantir ingresso — 1º lote <Arrow />
           </GoldButton>
         </div>
@@ -219,7 +220,7 @@ function Evento() {
     },
   ]
   return (
-    <section id="evento">
+    <section id="evento" className="theme-light">
       <div className="mx-auto max-w-7xl px-5 py-24 sm:px-8 sm:py-32">
       <div className="grid gap-14 lg:grid-cols-[1fr_1.1fr] lg:gap-20">
         <div>
@@ -460,11 +461,108 @@ function ParaQuem() {
 }
 
 /* =====================================================================
+   LOCALIZAÇÃO — mapa + navegação (Waze, Google Maps, Apple Maps)
+   ===================================================================== */
+function MapButton({ href, label, tint, children }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group flex items-center justify-center gap-2.5 rounded-2xl px-5 py-4 font-display text-sm uppercase tracking-wide text-white transition-transform duration-300 hover:-translate-y-0.5"
+      style={{ background: tint }}
+    >
+      <span className="grid h-5 w-5 place-items-center [&_svg]:h-5 [&_svg]:w-5">{children}</span>
+      {label}
+    </a>
+  )
+}
+
+function Localizacao() {
+  const links = getMapLinks()
+  return (
+    <section id="localizacao" className="relative overflow-hidden border-t border-[var(--color-line)] bg-navy-glass">
+      <div className="pointer-events-none absolute inset-0 vignette opacity-50" />
+      <div className="relative mx-auto max-w-7xl px-5 py-24 sm:px-8 sm:py-32">
+        <div className="max-w-2xl">
+          <Reveal>
+            <Eyebrow>Como chegar</Eyebrow>
+          </Reveal>
+          <SplitWords text="O palco natural é aqui" className="mt-6 text-[clamp(2.2rem,5vw,4rem)]" />
+          <Reveal delay={0.1}>
+            <p className="mt-6 text-[var(--color-muted)]">
+              Abra a rota direto no seu app favorito e venha viver o {EVENT.name} ao vivo.
+            </p>
+          </Reveal>
+        </div>
+
+        <div className="mt-12 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+          {/* Mapa */}
+          <Reveal className="relative overflow-hidden rounded-3xl border border-[var(--color-line)] shadow-[0_28px_80px_-40px_rgba(10,31,60,0.7)]">
+            <iframe
+              title={`Mapa — ${LOCATION.line1}`}
+              src={links.embed}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              className="h-[340px] w-full sm:h-[420px] lg:h-full lg:min-h-[440px]"
+              style={{ border: 0 }}
+            />
+            {/* Card do endereço sobre o mapa */}
+            <div className="pointer-events-none absolute left-4 top-4 max-w-[19rem] rounded-2xl border border-[var(--color-line)] bg-[var(--color-ink)]/90 p-4 backdrop-blur-md">
+              <p className="font-display text-lg uppercase leading-none text-[var(--color-bone)]">{LOCATION.name}</p>
+              <p className="mt-2 text-sm text-[var(--color-muted)]">
+                {LOCATION.line1} — {LOCATION.line2}
+                <br />
+                CEP {LOCATION.cep}
+              </p>
+            </div>
+          </Reveal>
+
+          {/* Coluna de navegação */}
+          <StaggerList className="flex flex-col justify-center gap-3" stagger={0.08}>
+            <div className="rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] p-6">
+              <span className="font-mono text-[0.62rem] uppercase tracking-[0.2em] text-[var(--color-green)]">Endereço</span>
+              <p className="mt-3 font-display text-2xl uppercase leading-tight text-[var(--color-bone)]">{LOCATION.name}</p>
+              <p className="mt-2 text-sm text-[var(--color-muted)]">
+                {LOCATION.line1} — {LOCATION.line2} · CEP {LOCATION.cep}
+              </p>
+            </div>
+
+            <MapButton href={links.google} label="Google Maps" tint="#4285f4">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7Z" fill="#fff" fillOpacity="0.22" />
+                <circle cx="12" cy="9" r="2.6" fill="#fff" />
+              </svg>
+            </MapButton>
+
+            <MapButton href={links.waze} label="Waze" tint="#33ccff">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M20 10.5a8 8 0 1 0-13.7 5.6c.3.3.4.7.3 1.1l-.3 1.3 2.2-.4c.3 0 .6 0 .8.1a8 8 0 0 0 3.4.8c4.4 0 8-3.4 8-7.6Z" fill="#fff" fillOpacity="0.25" stroke="#fff" strokeWidth="1.4" />
+                <circle cx="9.5" cy="10" r="1" fill="#fff" />
+                <circle cx="14.5" cy="10" r="1" fill="#fff" />
+                <path d="M9 13.5a3.2 3.2 0 0 0 5 0" stroke="#fff" strokeWidth="1.3" strokeLinecap="round" />
+              </svg>
+            </MapButton>
+
+            <MapButton href={links.apple} label="Apple Maps" tint="#3d3d3f">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7Z" fill="#fff" fillOpacity="0.22" />
+                <circle cx="12" cy="9" r="2.6" fill="#fff" />
+              </svg>
+            </MapButton>
+          </StaggerList>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* =====================================================================
    INGRESSOS
    ===================================================================== */
 function Ingressos() {
   return (
-    <section id="ingressos" className="theme-light">
+    <section id="ingressos">
       <div className="mx-auto max-w-7xl px-5 py-24 sm:px-8 sm:py-32">
       <div className="text-center">
         <Reveal>
@@ -508,7 +606,7 @@ function Ingressos() {
                 </li>
               ))}
             </ul>
-            <GoldButton href={TICKET_URL} size="sm" className="group mt-8 w-full">
+            <GoldButton href={`/checkout/${t.slug}`} size="sm" className="group mt-8 w-full">
               Comprar {t.name} <Arrow />
             </GoldButton>
           </div>
@@ -600,7 +698,7 @@ function FinalCTA() {
             O 1º lote não espera. Garanta o menor preço e esteja onde o físico de verdade é celebrado.
           </p>
           <div className="mt-10 flex justify-center">
-            <GoldButton href={TICKET_URL} className="group">
+            <GoldButton href="#ingressos" className="group">
               Garantir meu ingresso <Arrow />
             </GoldButton>
           </div>
@@ -633,7 +731,7 @@ function Footer() {
           <p className="max-w-xs text-sm text-[var(--color-muted)] md:text-right">
             {EVENT.name} {EVENT.edition} · {EVENT.dateFull} · {EVENT.city}.
           </p>
-          <GhostButton href={TICKET_URL}>Ingressos</GhostButton>
+          <GhostButton href="#ingressos">Ingressos</GhostButton>
         </div>
       </div>
       <div className="border-t border-[var(--color-line)] py-5 text-center font-mono text-[0.6rem] uppercase tracking-[0.18em] text-[var(--color-muted)]">
@@ -649,18 +747,29 @@ function Footer() {
 export default function App() {
   useSmoothScroll()
   const rich = useRichVisuals()
+  const { hash } = useLocation()
+
+  // Ao chegar com âncora (ex.: voltar do /checkout para /#ingressos),
+  // rola suavemente até a seção depois que o Lenis inicializa.
+  useEffect(() => {
+    if (!hash) return
+    const id = setTimeout(() => scrollTo(hash), 450)
+    return () => clearTimeout(id)
+  }, [hash])
+
   return (
     <div className="grain relative">
       <Nav />
       <main>
         <Hero rich={rich} />
-        <Ingressos />
         <Marquee />
         <Evento />
         <Natural />
         <Categorias />
         <ParaQuem />
         <Faq />
+        <Ingressos />
+        <Localizacao />
         <FinalCTA />
       </main>
       <Footer />

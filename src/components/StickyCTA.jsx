@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { TICKET_URL } from '../data'
 import { Arrow } from './ui'
+import { scrollTo } from '../lib/smooth'
 
 export default function StickyCTA() {
   const [show, setShow] = useState(false)
@@ -24,9 +24,11 @@ export default function StickyCTA() {
           <p className="font-display text-lg uppercase text-[var(--color-bone)]">Garanta o menor preço</p>
         </div>
         <a
-          href={TICKET_URL}
-          target="_blank"
-          rel="noopener noreferrer"
+          href="#ingressos"
+          onClick={(e) => {
+            e.preventDefault()
+            scrollTo('#ingressos')
+          }}
           className="group inline-flex shrink-0 items-center gap-2 rounded-full bg-green-grad px-5 py-3 font-display text-sm uppercase tracking-wide text-[var(--color-ink)]"
         >
           Comprar <Arrow />

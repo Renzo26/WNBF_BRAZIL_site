@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { EVENT, TICKET_URL } from '../data'
+import { EVENT } from '../data'
 import { Arrow, GoldButton, ScrollLink } from './ui'
 
 const LINKS = [
@@ -7,6 +7,7 @@ const LINKS = [
   ['100% Natural', '#natural'],
   ['Categorias', '#categorias'],
   ['Ingressos', '#ingressos'],
+  ['Localização', '#localizacao'],
 ]
 
 export default function Nav() {
@@ -49,7 +50,7 @@ export default function Nav() {
         </ul>
 
         <div className="flex items-center gap-3">
-          <GoldButton href={TICKET_URL} size="sm" className="group hidden sm:inline-flex">
+          <GoldButton href="#ingressos" size="sm" className="group hidden sm:inline-flex">
             Garantir ingresso <Arrow />
           </GoldButton>
           <button

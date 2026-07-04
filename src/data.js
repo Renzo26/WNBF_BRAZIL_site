@@ -10,7 +10,7 @@ export const EVENT = {
   dateFull: '10 e 11 de Outubro de 2026',
   dateISO: '2026-10-10T09:00:00-03:00',
   city: 'São Paulo · Barra Funda',
-  venue: 'São Paulo · Barra Funda', // [CONFIRMAR local/endereço exato]
+  venue: 'Expo Barra Funda · São Paulo',
 }
 
 export const TICKET_URL =
@@ -18,12 +18,46 @@ export const TICKET_URL =
 
 export const WHATSAPP_URL = 'https://wnbfbrazil.com.br/' // [TROCAR pelo WhatsApp de expositores]
 
+// ============================================================
+// LOCALIZAÇÃO — edite só aqui para atualizar o mapa e os botões
+// ============================================================
+export const LOCATION = {
+  // Nome do local exibido no card do mapa
+  name: 'Expo Barra Funda',
+  // Endereço formatado (linha 1 / linha 2) exibido no card
+  line1: 'R. Tagipuru, 1001',
+  line2: 'Barra Funda, São Paulo - SP',
+  cep: '05001-000',
+  // Consulta usada em todos os deep links de navegação e no mapa embutido
+  query: 'Expo Barra Funda, R. Tagipuru, 1001, Barra Funda, São Paulo - SP, 05001-000',
+  // Coordenadas aproximadas (opcional) — deixe vazio para usar só o endereço
+  lat: '',
+  lng: '',
+}
+
+/** Monta os links de navegação (Waze, Google, Apple) a partir de LOCATION. */
+export const getMapLinks = () => {
+  const q = encodeURIComponent(LOCATION.query)
+  const ll = LOCATION.lat && LOCATION.lng ? `${LOCATION.lat},${LOCATION.lng}` : ''
+  return {
+    embed: `https://www.google.com/maps?q=${q}&output=embed`,
+    google: `https://www.google.com/maps/dir/?api=1&destination=${q}`,
+    waze: ll ? `https://waze.com/ul?ll=${ll}&navigate=yes` : `https://waze.com/ul?q=${q}&navigate=yes`,
+    apple: `https://maps.apple.com/?daddr=${q}`,
+  }
+}
+
+// Taxa de serviço aplicada sobre o valor do ingresso (bilheteria).
+export const FEE_RATE = 0.1
+
 // Lotes de ingresso — 1º lote (preços reais da bilheteria Uticket)
 export const TICKETS = [
   {
+    slug: 'dia-1',
     tier: '10 Out · Sábado',
     name: 'Ingresso Dia 1',
     price: 'R$ 114',
+    priceValue: 114,
     note: '1º lote · + taxa',
     perks: [
       'Acesso ao dia 10/10',
@@ -34,9 +68,11 @@ export const TICKETS = [
     featured: false,
   },
   {
+    slug: 'passaporte-2-dias',
     tier: '10 + 11 Out · Os 2 dias',
     name: 'Passaporte 2 Dias',
     price: 'R$ 189',
+    priceValue: 189,
     note: '1º lote · + taxa',
     perks: [
       'Acesso aos dois dias — 10 e 11/10',
@@ -48,9 +84,11 @@ export const TICKETS = [
     featured: true,
   },
   {
+    slug: 'dia-2',
     tier: '11 Out · Domingo',
     name: 'Ingresso Dia 2',
     price: 'R$ 114',
+    priceValue: 114,
     note: '1º lote · + taxa',
     perks: [
       'Acesso ao dia 11/10',
@@ -61,6 +99,9 @@ export const TICKETS = [
     featured: false,
   },
 ]
+
+/** Busca um ingresso pelo slug da URL (/checkout/:slug). */
+export const getTicketBySlug = (slug) => TICKETS.find((t) => t.slug === slug)
 
 export const CATEGORIES = [
   { name: 'Bodybuilding', kicker: 'Massa & densidade', n: '01', image: '/atletas/body.webp', photoPosition: 'center top' },
