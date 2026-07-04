@@ -17,14 +17,35 @@ _settings = get_settings()
 
 EVENT_NAME = "Natural Fitness & Health Brasil"
 EVENT_DATE = "10 e 11 de Outubro de 2026"
+EVENT_LOCATION = "Expo Barra Funda — São Paulo/SP"
+
+
+def _whatsapp_message(order: Order) -> str:
+    """Mensagem pronta para envio no WhatsApp (formatação do WhatsApp: *negrito*)."""
+    first = order.buyer_name.split()[0]
+    code = str(order.id)[:8].upper()
+    return (
+        f"Olá, {first}! 🎉\n\n"
+        f"Seu pagamento foi *confirmado* e seu ingresso para o *{EVENT_NAME} 2026* está garantido! 💪\n\n"
+        f"🎟️ *Ingresso:* {order.ticket_name}\n"
+        f"📅 *Data:* {EVENT_DATE}\n"
+        f"📍 *Local:* {EVENT_LOCATION}\n"
+        f"💳 *Valor:* {brl(order.total_amount)}\n"
+        f"🔖 *Pedido:* {code}\n\n"
+        f"Seu ingresso com QR Code foi enviado para o seu e-mail ({order.buyer_email}). "
+        f"É só apresentar o QR Code na entrada do evento. ✅\n\n"
+        f"Guarde esta mensagem. Nos vemos lá! 🔥\n\n"
+        f"_WNBF Brasil — World Natural Bodybuilding Federation_"
+    )
 
 
 def _payload(order: Order) -> dict:
     phone = decrypt(order.buyer_phone_enc) or ""
     return {
-        "event": "payment_confirmed",
+        "event_type": "payment_confirmed",
         "simulated": _settings.simulate_payment,
         "order_id": str(order.id),
+        "order_code": str(order.id)[:8].upper(),
         "status": order.status.value,
         "paid_at": order.paid_at.isoformat() if order.paid_at else None,
         "customer": {
@@ -45,7 +66,9 @@ def _payload(order: Order) -> dict:
             "total_cents": order.total_amount,
             "total_formatted": brl(order.total_amount),
         },
-        "event": {"name": EVENT_NAME, "date": EVENT_DATE},
+        "event": {"name": EVENT_NAME, "date": EVENT_DATE, "location": EVENT_LOCATION},
+        # Mensagem já formatada para o WhatsApp (o n8n só precisa enviar isto)
+        "message": _whatsapp_message(order),
     }
 
 
