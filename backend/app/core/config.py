@@ -24,6 +24,13 @@ class Settings(BaseSettings):
     # Token que configuramos no painel do Asaas e que ele reenvia no header do webhook
     asaas_webhook_token: str = ""
 
+    # ---- Simulação de pagamento (enquanto o Asaas não está ligado) ----
+    # Quando True, o checkout marca o pedido como PAGO na hora (não chama o Asaas)
+    # e dispara a confirmação — útil para testar o fluxo ponta a ponta.
+    simulate_payment: bool = False
+    # Webhook do n8n que recebe a confirmação (para enviar WhatsApp, e-mail etc.)
+    n8n_confirm_webhook_url: str = ""
+
     # ---- Criptografia de PII em repouso (LGPD) ----
     # Chave Fernet (base64 urlsafe de 32 bytes) para cifrar CPF/CNPJ, telefone, endereço
     encryption_key: str

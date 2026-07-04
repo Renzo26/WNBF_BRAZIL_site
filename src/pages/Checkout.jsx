@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { EVENT, FEE_RATE, getTicketBySlug } from '../data'
+import { postCheckout } from '../lib/api'
 import { brl, formatCard, formatCep, formatDoc, formatExpiry, formatPhone, onlyDigits } from '../lib/format'
 import {
   isValidCardNumber,
@@ -181,11 +182,14 @@ export default function Checkout() {
     cardExpiry: '',
     cardCvv: '',
     installments: '1',
+    consent: false,
   })
   const [touched, setTouched] = useState({})
   const [cepStatus, setCepStatus] = useState('idle') // idle | loading | ok | notfound | error
   const [status, setStatus] = useState('form') // 'form' | 'processing' | 'success'
-  const [orderId] = useState(() => 'WNBF-' + Math.random().toString(36).slice(2, 8).toUpperCase())
+  const [result, setResult] = useState(null)     // resposta do backend
+  const [apiError, setApiError] = useState('')
+  const [idemKey] = useState(() => (globalThis.crypto?.randomUUID ? crypto.randomUUID() : String(Date.now())))
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
@@ -252,6 +256,7 @@ export default function Checkout() {
       if (!isValidExpiry(form.cardExpiry)) e.cardExpiry = 'Validade inválida'
       if (!isValidCvv(form.cardCvv)) e.cardCvv = 'CVV inválido'
     }
+    if (!form.consent) e.consent = 'É necessário aceitar os termos e a política de privacidade'
     return e
   }, [form])
 
@@ -271,24 +276,55 @@ export default function Checkout() {
   const blur = (key) => () => setTouched((t) => ({ ...t, [key]: true }))
   const err = (key) => (touched[key] ? errors[key] : undefined)
 
-  const handleSubmit = (ev) => {
+  const handleSubmit = async (ev) => {
     ev.preventDefault()
     if (Object.keys(errors).length > 0) {
       // marca todos como tocados p/ revelar os erros e leva ao 1º inválido
       setTouched({
         name: 1, email: 1, emailConfirm: 1, doc: 1, phone: 1,
         cep: 1, logradouro: 1, number: 1, bairro: 1, cidade: 1, uf: 1,
-        cardNumber: 1, cardName: 1, cardExpiry: 1, cardCvv: 1,
+        cardNumber: 1, cardName: 1, cardExpiry: 1, cardCvv: 1, consent: 1,
       })
       const first = document.querySelector('[aria-invalid="true"]')
       first?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       first?.focus?.({ preventScroll: true })
       return
     }
-    // >>> INTEGRAÇÃO: enviar `form` + `ticket` ao backend/gateway (Pix ou cartão).
-    // Aqui apenas simulamos o processamento e mostramos a confirmação.
+
+    setApiError('')
     setStatus('processing')
-    setTimeout(() => setStatus('success'), 1100)
+    try {
+      const payload = {
+        ticket_slug: slug,
+        name: form.name,
+        email: form.email,
+        email_confirm: form.emailConfirm,
+        doc: form.doc,
+        phone: form.phone,
+        address: {
+          cep: form.cep,
+          logradouro: form.logradouro,
+          number: form.number,
+          complemento: form.complemento || null,
+          bairro: form.bairro,
+          cidade: form.cidade,
+          uf: form.uf,
+        },
+        method: form.method,
+        installments: form.method === 'card' ? Number(form.installments) : 1,
+        card:
+          form.method === 'card'
+            ? { number: form.cardNumber, holder_name: form.cardName, expiry: form.cardExpiry, cvv: form.cardCvv }
+            : null,
+        consent: form.consent,
+      }
+      const data = await postCheckout(payload, idemKey)
+      setResult(data)
+      setStatus('success')
+    } catch (e) {
+      setApiError(e.message)
+      setStatus('form')
+    }
   }
 
   /* ---------- ingresso inexistente ---------- */
@@ -313,13 +349,14 @@ export default function Checkout() {
   }
 
   /* ---------- confirmação ---------- */
-  if (status === 'success') {
-    const pixCode = `00020126580014BR.GOV.BCB.PIX0136${orderId.toLowerCase()}-natural-fitness-brasil52040000530398654${String(
-      total.toFixed(2),
-    )}5802BR5920WNBF NATURAL FITNESS6009SAO PAULO62070503***6304A1B2`
+  if (status === 'success' && result) {
+    const paid = result.status === 'PAID'
+    const pix = result.pix
+    const showPixQr = !paid && result.method === 'PIX' && pix?.qr_image
     const copyPix = async () => {
+      if (!pix?.copy_paste) return
       try {
-        await navigator.clipboard.writeText(pixCode)
+        await navigator.clipboard.writeText(pix.copy_paste)
         setCopied(true)
         setTimeout(() => setCopied(false), 2200)
       } catch {
@@ -333,42 +370,25 @@ export default function Checkout() {
           <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-green-grad text-[#07172e] shadow-green">
             {Ic.check({ width: 30, height: 30 })}
           </div>
-          <h1 className="mt-6 text-3xl sm:text-4xl">
-            {form.method === 'pix' ? 'Quase lá!' : 'Pagamento aprovado'}
-          </h1>
+          <h1 className="mt-6 text-3xl sm:text-4xl">{paid ? 'Pagamento confirmado!' : 'Quase lá!'}</h1>
           <p className="mt-3 text-[var(--color-muted)]">
-            {form.method === 'pix'
-              ? 'Escaneie o QR Code ou copie o código para concluir o pagamento via Pix.'
-              : `Recebemos seu pedido, ${form.name.split(' ')[0]}. O ingresso foi enviado para ${form.email}.`}
+            {paid
+              ? `Tudo certo, ${form.name.split(' ')[0]}! Enviamos a confirmação e o ingresso para o seu e-mail e WhatsApp.`
+              : 'Escaneie o QR Code ou copie o código para concluir o pagamento via Pix.'}
           </p>
-          <p className="mt-2 font-mono text-xs uppercase tracking-[0.18em] text-[var(--color-green)]">Pedido {orderId}</p>
+          <p className="mt-2 font-mono text-xs uppercase tracking-[0.18em] text-[var(--color-green)]">
+            Pedido {result.order_id?.slice(0, 8)} · {result.total_formatted}
+          </p>
         </div>
 
-        {form.method === 'pix' && (
+        {showPixQr && (
           <div className="mt-8 rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)]/60 p-6 text-center">
-            {/* placeholder de QR Code (a imagem real vem do gateway) */}
-            <div
-              aria-hidden
-              className="mx-auto grid h-44 w-44 place-items-center rounded-xl bg-white p-3"
-              style={{
-                backgroundImage:
-                  'repeating-conic-gradient(#07172e 0 25%, #ffffff 0 50%)',
-                backgroundSize: '18px 18px',
-              }}
-            >
-              <div className="grid h-14 w-14 place-items-center rounded-lg bg-white">
-                <span className="text-green-metal">{Ic.pix({ width: 34, height: 34 })}</span>
-              </div>
-            </div>
-            <p className="mt-4 text-2xl font-display text-green-metal">{brl(total)}</p>
-            <p className="font-mono text-[0.62rem] uppercase tracking-[0.16em] text-[var(--color-muted)]">
-              Aprovação em segundos
-            </p>
-
+            <img src={pix.qr_image} alt="QR Code Pix" className="mx-auto h-44 w-44 rounded-xl bg-white p-2" />
+            <p className="mt-4 text-2xl font-display text-green-metal">{result.total_formatted}</p>
             <div className="mt-5 flex items-stretch gap-2">
               <input
                 readOnly
-                value={pixCode}
+                value={pix.copy_paste || ''}
                 className="min-w-0 flex-1 truncate rounded-xl border border-[var(--color-line)] bg-[var(--color-ink-2)] px-3 py-3 text-xs text-[var(--color-muted)]"
               />
               <button
@@ -783,25 +803,49 @@ export default function Checkout() {
               )}
             </section>
 
-            {/* botão */}
+            {/* consentimento (LGPD) */}
+            <label className="mt-6 flex cursor-pointer items-start gap-3 text-sm text-[var(--color-muted)]">
+              <input
+                type="checkbox"
+                checked={form.consent}
+                onChange={(e) => setForm((f) => ({ ...f, consent: e.target.checked }))}
+                onBlur={blur('consent')}
+                className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--color-green)]"
+              />
+              <span>
+                Li e concordo com os{' '}
+                <span className="text-[var(--color-green-hi)]">Termos</span> e a{' '}
+                <span className="text-[var(--color-green-hi)]">Política de Privacidade</span>, e autorizo o uso dos meus
+                dados para processar a compra (LGPD).
+              </span>
+            </label>
+            {err('consent') && <p className="mt-1.5 text-xs text-[#ff8f93]">{err('consent')}</p>}
+
+            {apiError && (
+              <p className="mt-4 rounded-xl border border-[#e5646a]/40 bg-[#e5646a]/10 px-4 py-3 text-sm text-[#ff8f93]">
+                {apiError}
+              </p>
+            )}
+
+            {/* botão: simular pagamento */}
             <button
               type="submit"
               disabled={processing}
-              className="group relative mt-6 flex w-full items-center justify-center gap-2 overflow-hidden rounded-full bg-green-grad px-8 py-4 font-display text-lg uppercase tracking-wide text-[#07172e] shadow-green transition-opacity disabled:opacity-70"
+              className="group relative mt-4 flex w-full items-center justify-center gap-2 overflow-hidden rounded-full bg-green-grad px-8 py-4 font-display text-lg uppercase tracking-wide text-[#07172e] shadow-green transition-opacity disabled:opacity-70"
             >
               {processing ? (
                 'Processando…'
               ) : (
                 <>
                   {Ic.lock({ width: 18, height: 18 })}
-                  {form.method === 'pix' ? 'Gerar Pix' : 'Pagar'} · {brl(total)}
+                  Simular pagamento · {brl(total)}
                 </>
               )}
             </button>
 
             <p className="mt-4 flex items-center justify-center gap-2 text-center font-mono text-[0.62rem] uppercase tracking-[0.14em] text-[var(--color-muted)]">
               {Ic.lock({ width: 13, height: 13 })}
-              Ambiente seguro · seus dados são criptografados
+              Modo simulação · nenhuma cobrança real
             </p>
           </form>
 

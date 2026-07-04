@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
+from app.core.money import brl
 from app.core.security import doc_hash, encrypt, mask_doc, mask_email
 from app.core.validators import doc_kind
 from app.models.order import DocType, Order, OrderStatus, PaymentMethod
@@ -30,10 +31,6 @@ class CheckoutError(Exception):
         super().__init__(message)
         self.message = message
         self.status_code = status_code
-
-
-def brl(cents: int) -> str:
-    return f"R$ {cents / 100:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
 def _card_brand(digits: str) -> str:
@@ -103,6 +100,18 @@ class CheckoutService:
             "checkout criado order=%s ticket=%s doc=%s email=%s método=%s ip=%s",
             order.id, ticket.slug, mask_doc(data.doc), mask_email(str(data.email)), data.method, client_ip,
         )
+
+        # ---- MODO SIMULAÇÃO: marca pago e confirma, sem chamar o Asaas ----
+        if _settings.simulate_payment:
+            order.status = OrderStatus.PAID
+            order.paid_at = datetime.now(timezone.utc)
+            if data.method == "card" and data.card:
+                order.card_brand = _card_brand(data.card.digits)
+                order.card_last4 = data.card.digits[-4:]
+            await db.commit()
+            await db.refresh(order)
+            await fulfill_order(order)  # dispara confirmação (n8n -> WhatsApp)
+            return await self._build_response(order)
 
         try:
             customer_id = await asaas_service.create_customer(
