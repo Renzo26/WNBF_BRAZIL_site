@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { EVENT, FEE_RATE, getTicketBySlug } from '../data'
 import { postCheckout } from '../lib/api'
+import { buildTicketPng, makeQrDataUrl } from '../lib/ticket'
 import { brl, formatCard, formatCep, formatDoc, formatExpiry, formatPhone, onlyDigits } from '../lib/format'
 import {
   isValidCardNumber,
@@ -61,6 +62,16 @@ const Ic = {
   chevron: (p) => (
     <svg viewBox="0 0 24 24" fill="none" width="18" height="18" {...p}>
       <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  download: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" width="18" height="18" {...p}>
+      <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  whatsapp: (p) => (
+    <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" {...p}>
+      <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.9-4.45 9.9-9.91C21.95 6.45 17.5 2 12.04 2Zm5.8 14.06c-.24.68-1.42 1.31-1.95 1.36-.5.05-1.13.07-1.82-.11-.42-.13-.96-.31-1.65-.61-2.9-1.25-4.79-4.17-4.94-4.36-.14-.19-1.18-1.57-1.18-2.99 0-1.42.75-2.12 1.01-2.41.26-.29.57-.36.76-.36l.55.01c.18.01.41-.07.64.49.24.57.81 1.99.88 2.13.07.14.12.31.02.5-.09.19-.14.31-.28.48-.14.17-.29.37-.42.5-.14.14-.28.29-.12.57.16.28.72 1.18 1.54 1.92 1.06.94 1.95 1.24 2.23 1.38.28.14.44.12.6-.07.16-.19.69-.8.87-1.08.18-.28.36-.23.61-.14.25.09 1.6.76 1.87.9.28.14.46.21.53.33.07.12.07.68-.17 1.35Z" />
     </svg>
   ),
 }
@@ -191,11 +202,19 @@ export default function Checkout() {
   const [apiError, setApiError] = useState('')
   const [idemKey] = useState(() => (globalThis.crypto?.randomUUID ? crypto.randomUUID() : String(Date.now())))
   const [copied, setCopied] = useState(false)
+  const [ticketQr, setTicketQr] = useState('') // QR do ingresso (data URL)
 
   useEffect(() => {
     window.scrollTo(0, 0)
     document.title = ticket ? `Checkout · ${ticket.name} — WNBF Brasil` : 'Checkout — WNBF Brasil'
   }, [ticket])
+
+  // Gera o QR do ingresso assim que o pagamento é confirmado.
+  useEffect(() => {
+    if (status === 'success' && result?.status === 'PAID' && result.order_id) {
+      makeQrDataUrl(`WNBF-INGRESSO:${result.order_id}`).then(setTicketQr).catch(() => {})
+    }
+  }, [status, result])
 
   // Autopreenchimento de endereço pela ViaCEP quando o CEP fica completo.
   useEffect(() => {
@@ -363,6 +382,27 @@ export default function Checkout() {
         /* clipboard indisponível */
       }
     }
+    const downloadTicket = async () => {
+      if (!ticketQr) return
+      try {
+        const png = await buildTicketPng({
+          eventDate: '10 e 11 OUT 2026',
+          ticketName: ticket.name,
+          buyerName: form.name,
+          orderId: result.order_id.slice(0, 8),
+          total: result.total_formatted,
+          qrDataUrl: ticketQr,
+        })
+        const a = document.createElement('a')
+        a.href = png
+        a.download = `ingresso-wnbf-${result.order_id.slice(0, 8)}.png`
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+      } catch {
+        /* falha ao gerar o ingresso */
+      }
+    }
 
     return (
       <div className="mx-auto min-h-[100svh] max-w-lg px-5 py-14 sm:py-20">
@@ -380,6 +420,51 @@ export default function Checkout() {
             Pedido {result.order_id?.slice(0, 8)} · {result.total_formatted}
           </p>
         </div>
+
+        {paid && (
+          <>
+            {/* confirmação enviada no WhatsApp */}
+            <div className="mt-6 flex items-center gap-3 rounded-xl border border-[#25D366]/40 bg-[#25D366]/10 px-4 py-3">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#25D366] text-white">
+                {Ic.whatsapp()}
+              </span>
+              <p className="text-sm text-[var(--color-bone)]">
+                Confirmação de pagamento enviada no seu WhatsApp{' '}
+                <strong className="whitespace-nowrap">{form.phone}</strong>
+              </p>
+            </div>
+
+            {/* ingresso com QR Code */}
+            <div className="mt-6 overflow-hidden rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)]/60">
+              <div className="flex items-center justify-between bg-green-grad px-5 py-3">
+                <span className="font-display uppercase tracking-wide text-[#07172e]">Seu ingresso</span>
+                <span className="font-mono text-[0.6rem] uppercase tracking-[0.14em] text-[#07172e]/80">WNBF · 2026</span>
+              </div>
+              <div className="p-6 text-center">
+                {ticketQr ? (
+                  <img src={ticketQr} alt="QR Code do ingresso" className="mx-auto h-48 w-48 rounded-xl bg-white p-2" />
+                ) : (
+                  <div className="mx-auto h-48 w-48 animate-pulse rounded-xl bg-[var(--color-ink-2)]" />
+                )}
+                <h3 className="mt-4 text-2xl">{ticket.name}</h3>
+                <p className="mt-1 text-sm text-[var(--color-muted)]">{form.name}</p>
+                <p className="mt-1 font-mono text-[0.6rem] uppercase tracking-[0.16em] text-[var(--color-green)]">
+                  Pedido {result.order_id?.slice(0, 8)} · {result.total_formatted}
+                </p>
+                <p className="mt-4 text-xs text-[var(--color-muted)]">Apresente este QR Code na entrada do evento</p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={downloadTicket}
+              disabled={!ticketQr}
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-green-grad px-8 py-4 font-display text-base uppercase tracking-wide text-[#07172e] shadow-green transition-opacity disabled:opacity-60"
+            >
+              {Ic.download()} Baixar ingresso
+            </button>
+          </>
+        )}
 
         {showPixQr && (
           <div className="mt-8 rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)]/60 p-6 text-center">
