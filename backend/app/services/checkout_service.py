@@ -15,9 +15,11 @@ from app.core.security import doc_hash, encrypt, mask_doc, mask_email
 from app.core.validators import doc_kind
 from app.models.order import DocType, Order, OrderStatus, PaymentMethod
 from app.models.ticket_type import TicketType
-from app.schemas.checkout import CheckoutIn, CheckoutOut, PixOut
+from app.schemas.checkout import CheckoutIn, CheckoutOut, PixOut, TicketOut
 from app.services.asaas_service import AsaasError, asaas_service
 from app.services.fulfillment_service import fulfill_order
+from app.services.ticket_service import qr_token as ticket_qr_token
+from app.services.ticket_service import ticket_service
 
 logger = logging.getLogger("checkout.service")
 _settings = get_settings()
@@ -53,7 +55,7 @@ class CheckoutService:
         if idempotency_key:
             existing = await db.scalar(select(Order).where(Order.idempotency_key == idempotency_key))
             if existing:
-                return await self._build_response(existing)
+                return await self._build_response(db, existing)
 
         # ---- preço vem do servidor (nunca do cliente) ----
         ticket = await db.scalar(
@@ -110,8 +112,8 @@ class CheckoutService:
                 order.card_last4 = data.card.digits[-4:]
             await db.commit()
             await db.refresh(order)
-            await fulfill_order(order)  # dispara confirmação (n8n -> WhatsApp)
-            return await self._build_response(order)
+            await fulfill_order(db, order)  # emite ingressos + confirmação (n8n -> WhatsApp)
+            return await self._build_response(db, order)
 
         try:
             customer_id = await asaas_service.create_customer(
@@ -130,7 +132,7 @@ class CheckoutService:
             if data.method == "pix":
                 await self._charge_pix(order, total, ticket.name)
             else:
-                await self._charge_card(order, data, total, ticket.name, client_ip)
+                await self._charge_card(db, order, data, total, ticket.name, client_ip)
         except AsaasError as exc:
             order.status = OrderStatus.FAILED
             # libera a chave para permitir nova tentativa do comprador
@@ -140,7 +142,7 @@ class CheckoutService:
 
         await db.commit()
         await db.refresh(order)
-        return await self._build_response(order)
+        return await self._build_response(db, order)
 
     async def _charge_pix(self, order: Order, total: int, description: str) -> None:
         due = (date.today() + timedelta(days=1)).isoformat()
@@ -155,7 +157,7 @@ class CheckoutService:
         order.expires_at = datetime.now(timezone.utc) + timedelta(minutes=_settings.pix_expiration_minutes)
 
     async def _charge_card(
-        self, order: Order, data: CheckoutIn, total: int, description: str, client_ip: str
+        self, db: AsyncSession, order: Order, data: CheckoutIn, total: int, description: str, client_ip: str
     ) -> None:
         card = data.card
         digits = card.digits
@@ -191,14 +193,14 @@ class CheckoutService:
         if status in _PAID_STATUSES:
             order.status = OrderStatus.PAID
             order.paid_at = datetime.now(timezone.utc)
-            await fulfill_order(order)
+            await fulfill_order(db, order)
         elif status in _PENDING_STATUSES:
             order.status = OrderStatus.PENDING
         else:
             order.status = OrderStatus.FAILED
             raise AsaasError("Cartão recusado. Verifique os dados ou tente outro.", status_code=400)
 
-    async def _build_response(self, order: Order) -> CheckoutOut:
+    async def _build_response(self, db: AsyncSession, order: Order) -> CheckoutOut:
         pix: PixOut | None = None
         if order.method == PaymentMethod.PIX and order.status == OrderStatus.PENDING and order.asaas_payment_id:
             try:
@@ -210,6 +212,20 @@ class CheckoutService:
                 )
             except AsaasError:
                 pix = PixOut()
+
+        # ingressos já emitidos (pedido pago) — o front gera o QR a partir do qr_token
+        tickets_out: list[TicketOut] = []
+        if order.status == OrderStatus.PAID:
+            for t in await ticket_service.tickets_for_order(db, order.id):
+                tickets_out.append(
+                    TicketOut(
+                        code=t.code,
+                        qr_token=ticket_qr_token(t),
+                        holder_name=t.holder_name,
+                        ticket_name=t.ticket_name,
+                    )
+                )
+
         return CheckoutOut(
             order_id=str(order.id),
             status=order.status.value,
@@ -217,6 +233,7 @@ class CheckoutService:
             total_amount=order.total_amount,
             total_formatted=brl(order.total_amount),
             pix=pix,
+            tickets=tickets_out,
         )
 
 

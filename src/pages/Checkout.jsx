@@ -210,9 +210,12 @@ export default function Checkout() {
   }, [ticket])
 
   // Gera o QR do ingresso assim que o pagamento é confirmado.
+  // Usa o token ASSINADO vindo do backend (validável na portaria); se por algum
+  // motivo não vier, cai para o id do pedido apenas como fallback visual.
   useEffect(() => {
-    if (status === 'success' && result?.status === 'PAID' && result.order_id) {
-      makeQrDataUrl(`WNBF-INGRESSO:${result.order_id}`).then(setTicketQr).catch(() => {})
+    if (status === 'success' && result?.status === 'PAID') {
+      const token = result.tickets?.[0]?.qr_token || `WNBF-INGRESSO:${result.order_id}`
+      makeQrDataUrl(token).then(setTicketQr).catch(() => {})
     }
   }, [status, result])
 
@@ -448,6 +451,11 @@ export default function Checkout() {
                 )}
                 <h3 className="mt-4 text-2xl">{ticket.name}</h3>
                 <p className="mt-1 text-sm text-[var(--color-muted)]">{form.name}</p>
+                {result.tickets?.[0]?.code && (
+                  <p className="mt-2 font-mono text-sm tracking-[0.12em] text-[var(--color-bone)]">
+                    {result.tickets[0].code}
+                  </p>
+                )}
                 <p className="mt-1 font-mono text-[0.6rem] uppercase tracking-[0.16em] text-[var(--color-green)]">
                   Pedido {result.order_id?.slice(0, 8)} · {result.total_formatted}
                 </p>

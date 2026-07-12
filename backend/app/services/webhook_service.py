@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.order import Order, OrderStatus
 from app.models.webhook_event import WebhookEvent
-from app.services.fulfillment_service import fulfill_order
+from app.services.fulfillment_service import cancel_order_tickets, fulfill_order
 from app.services.sse_service import broadcaster
 
 logger = logging.getLogger("checkout.webhook")
@@ -69,7 +69,9 @@ class WebhookService:
         order.status = new_status
         if new_status == OrderStatus.PAID:
             order.paid_at = datetime.now(timezone.utc)
-            await fulfill_order(order)
+            await fulfill_order(db, order)
+        elif new_status in (OrderStatus.REFUNDED, OrderStatus.CANCELED):
+            await cancel_order_tickets(db, order)
 
         await db.execute(
             WebhookEvent.__table__.update()

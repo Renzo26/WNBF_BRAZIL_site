@@ -113,6 +113,13 @@ class PixOut(BaseModel):
     expires_at: Optional[str] = None
 
 
+class TicketOut(BaseModel):
+    code: str            # código legível do ingresso
+    qr_token: str        # conteúdo assinado do QR (o front gera o QR a partir disto)
+    holder_name: str
+    ticket_name: str
+
+
 class CheckoutOut(BaseModel):
     order_id: str
     status: str
@@ -120,6 +127,7 @@ class CheckoutOut(BaseModel):
     total_amount: int                    # centavos
     total_formatted: str
     pix: Optional[PixOut] = None
+    tickets: list[TicketOut] = []        # preenchido quando o pedido já está pago
 
 
 class OrderStatusOut(BaseModel):

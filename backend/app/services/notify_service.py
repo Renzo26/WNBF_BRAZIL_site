@@ -39,8 +39,9 @@ def _whatsapp_message(order: Order) -> str:
     )
 
 
-def _payload(order: Order) -> dict:
+def _payload(order: Order, tickets: list | None = None, qr_tokens: list[str] | None = None) -> dict:
     phone = decrypt(order.buyer_phone_enc) or ""
+    codes = [t.code for t in (tickets or [])]
     return {
         "event_type": "payment_confirmed",
         "simulated": _settings.simulate_payment,
@@ -59,6 +60,8 @@ def _payload(order: Order) -> dict:
             "slug": order.ticket_slug,
             "name": order.ticket_name,
             "quantity": order.quantity,
+            "codes": codes,                    # códigos dos ingressos emitidos
+            "qr_tokens": qr_tokens or [],      # conteúdo do QR (assinado)
         },
         "payment": {
             "method": order.method.value,
@@ -72,14 +75,14 @@ def _payload(order: Order) -> dict:
     }
 
 
-async def send_confirmation(order: Order) -> None:
+async def send_confirmation(order: Order, tickets: list | None = None, qr_tokens: list[str] | None = None) -> None:
     url = _settings.n8n_confirm_webhook_url
     if not url:
         logger.info("n8n webhook não configurado — pulando confirmação order=%s", order.id)
         return
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.post(url, json=_payload(order))
+            resp = await client.post(url, json=_payload(order, tickets, qr_tokens))
             resp.raise_for_status()
         logger.info(
             "confirmação enviada ao n8n order=%s email=%s", order.id, mask_email(order.buyer_email)

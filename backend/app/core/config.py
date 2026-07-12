@@ -37,6 +37,26 @@ class Settings(BaseSettings):
     # Chave HMAC para gerar hash determinístico do documento (busca/dedupe sem expor o dado)
     doc_hash_key: str
 
+    # ---- Ingresso / credenciamento ----
+    # Chave HMAC que assina o token do QR do ingresso (impede forjar QR válido).
+    # Se vazia, cai para doc_hash_key (funciona, mas o ideal é uma chave própria).
+    ticket_sign_key: str = ""
+    # JWT do app de credenciamento (login do staff). Se vazio, cai para doc_hash_key.
+    jwt_secret: str = ""
+    jwt_expire_minutes: int = 720     # 12h — cobre um dia inteiro de evento
+    # Seed do 1º usuário admin no start (só cria se ainda não houver usuários).
+    staff_seed_username: str = ""
+    staff_seed_password: str = ""
+    staff_seed_name: str = "Administrador"
+
+    @property
+    def ticket_key(self) -> str:
+        return self.ticket_sign_key or self.doc_hash_key
+
+    @property
+    def jwt_key(self) -> str:
+        return self.jwt_secret or self.doc_hash_key
+
     # ---- Regras de negócio ----
     fee_rate: float = 0.10            # taxa de serviço sobre o ingresso
     pix_expiration_minutes: int = 30  # validade do QR Pix

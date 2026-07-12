@@ -8,8 +8,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import checkout, sse, webhooks
+from app.api import auth, checkout, sse, staff, validation, webhooks
 from app.core.config import get_settings
+from app.core.database import AsyncSessionLocal
+from app.services.staff_service import staff_service
 
 settings = get_settings()
 
@@ -21,6 +23,12 @@ logging.basicConfig(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # cria o 1º admin (se configurado no .env e a tabela estiver vazia)
+    try:
+        async with AsyncSessionLocal() as db:
+            await staff_service.seed_admin_if_empty(db)
+    except Exception as exc:  # não impede o boot da API
+        logging.getLogger("startup").warning("seed do admin falhou: %s", exc.__class__.__name__)
     yield
 
 
@@ -41,7 +49,7 @@ app.add_middleware(
     allow_origin_regex=r"https?://.*\.easypanel\.host",
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type", "Idempotency-Key"],
+    allow_headers=["Content-Type", "Idempotency-Key", "Authorization"],
 )
 
 
@@ -60,6 +68,9 @@ async def security_headers(request: Request, call_next):
 app.include_router(checkout.router, prefix="/api")
 app.include_router(webhooks.router, prefix="/api")
 app.include_router(sse.router, prefix="/api")
+app.include_router(auth.router, prefix="/api")
+app.include_router(validation.router, prefix="/api")
+app.include_router(staff.router, prefix="/api")
 
 
 @app.get("/health")
