@@ -62,7 +62,7 @@ export const FEE_RATE = 0.1
 //    + rodar backend/scripts/virar_lote_2.sql no banco.
 //    Veja VIRADA_LOTE_2.md na raiz.
 // ============================================================
-export const LOTE_ATIVO = 2
+export const LOTE_ATIVO = 1
 
 export const LOTES = {
   1: {
