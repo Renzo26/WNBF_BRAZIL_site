@@ -16,7 +16,7 @@ import {
 } from './components/ui'
 import { scrollTo, useSmoothScroll } from './lib/smooth'
 import { useRichVisuals } from './lib/device'
-import { CATEGORIES, EVENT, FAQ, LOCATION, TICKETS, WHATSAPP_URL, getMapLinks } from './data'
+import { CATEGORIES, EVENT, FAQ, LOCATION, LOTE, TICKETS, WHATSAPP_URL, getMapLinks } from './data'
 
 // Emblema 3D flutuante (carregado sob demanda — code splitting)
 const FloatingEmblem = lazy(() => import('./three/FloatingEmblem'))
@@ -162,9 +162,15 @@ function Hero({ rich }) {
           delay={0.4}
         />
 
-        <div className="hero-fade mt-7">
+        <div className="hero-fade mt-7 flex flex-col items-center gap-4">
+          {LOTE.badge && (
+            <span className="badge-lote inline-flex items-center gap-2 rounded-full px-4 py-1.5 font-mono text-[0.62rem] uppercase tracking-[0.22em]">
+              <span className="dot-urgency h-1.5 w-1.5 animate-urgency-pulse rounded-full" />
+              {LOTE.urgency ?? `${LOTE.label} · vagas limitadas`}
+            </span>
+          )}
           <GoldButton href="#ingressos" size="sm" className="group">
-            Garantir ingresso — 1º lote <Arrow />
+            {LOTE.heroCta} <Arrow />
           </GoldButton>
         </div>
       </div>
@@ -181,7 +187,9 @@ function Hero({ rich }) {
    MARQUEE
    ===================================================================== */
 function Marquee() {
-  const items = ['100% DRUG-FREE', 'POLÍGRAFO OBRIGATÓRIO', 'EXAME WADA', 'WNBF CHAMPIONSHIPS', 'NATURAL FITNESS EXPO', '10·11 OUT 2026']
+  // No 2º lote, o marquee ganha tom de urgência (texto e estrela âmbar).
+  const urgent = !!LOTE.badge
+  const items = LOTE.marquee ?? ['100% DRUG-FREE', 'POLÍGRAFO OBRIGATÓRIO', 'EXAME WADA', 'WNBF CHAMPIONSHIPS', 'NATURAL FITNESS EXPO', '10·11 OUT 2026']
   const row = [...items, ...items]
   return (
     <div className="overflow-hidden border-y border-[var(--color-line)] bg-navy-glass py-4">
@@ -189,7 +197,7 @@ function Marquee() {
         {row.map((t, i) => (
           <span key={i} className="flex items-center gap-10 font-display text-lg uppercase tracking-wide text-[var(--color-muted)]">
             {t}
-            <span className="text-[var(--color-green-deep)]">✦</span>
+            <span className={urgent ? 'text-[var(--color-urgency)]' : 'text-[var(--color-green-deep)]'}>✦</span>
           </span>
         ))}
       </div>
@@ -558,23 +566,89 @@ function Localizacao() {
 }
 
 /* =====================================================================
+   LOTES — linha de virada (exibida só no 2º lote)
+   ===================================================================== */
+function LotesTimeline() {
+  const tl = LOTE.timeline
+  if (!tl) return null
+  return (
+    <section id="lotes" className="relative overflow-hidden border-t border-[var(--color-line)] bg-navy-glass">
+      {/* brilho âmbar de fundo */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_60%_at_50%_0%,rgba(245,166,35,0.12),transparent_60%)]" />
+      <div className="relative mx-auto max-w-7xl px-5 py-24 sm:px-8 sm:py-28">
+        <div className="text-center">
+          <Reveal>
+            <span className="badge-lote inline-flex items-center gap-2.5 rounded-full px-5 py-2 font-mono text-[0.68rem] uppercase tracking-[0.2em]">
+              <span className="dot-urgency h-2 w-2 animate-urgency-pulse rounded-full" />
+              {tl.eyebrow}
+            </span>
+          </Reveal>
+          <SplitWords text={tl.headline} className="mx-auto mt-6 max-w-3xl text-[clamp(2rem,5vw,3.6rem)]" />
+          <Reveal delay={0.1}>
+            <p className="mx-auto mt-5 max-w-xl text-[var(--color-muted)]">{tl.sub}</p>
+          </Reveal>
+        </div>
+
+        <StaggerList className="mt-14 grid gap-5 md:grid-cols-3" stagger={0.12}>
+          {tl.steps.map((s) => {
+            const current = s.state === 'current'
+            const done = s.state === 'done'
+            return (
+              <div
+                key={s.label}
+                className={`relative flex flex-col rounded-3xl border p-7 transition-colors ${
+                  current
+                    ? 'border-urgency bg-gradient-to-b from-[var(--color-surface-2)] to-[var(--color-ink-2)] shadow-urgency'
+                    : 'border-[var(--color-line)] bg-[var(--color-surface)]'
+                } ${done ? 'opacity-60' : ''}`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className={`font-mono text-[0.62rem] uppercase tracking-[0.2em] ${current ? 'text-urgency' : 'text-[var(--color-muted)]'}`}>
+                    {s.tag}
+                  </span>
+                  {current && <span className="dot-urgency h-2.5 w-2.5 animate-urgency-pulse rounded-full" />}
+                </div>
+                <h3 className={`mt-4 text-3xl ${current ? 'text-[var(--color-bone)]' : ''} ${done ? 'line-through decoration-[var(--color-muted)]/60' : ''}`}>
+                  {s.label}
+                </h3>
+                <p className="mt-2 text-sm text-[var(--color-muted)]">{s.desc}</p>
+                <div className={`mt-6 font-display text-2xl ${current ? 'text-urgency' : 'text-[var(--color-muted)]'}`}>{s.price}</div>
+              </div>
+            )
+          })}
+        </StaggerList>
+      </div>
+    </section>
+  )
+}
+
+/* =====================================================================
    INGRESSOS
    ===================================================================== */
 function Ingressos() {
+  const urgent = !!LOTE.badge // 2º lote → acento âmbar
   return (
-    <section id="ingressos">
-      <div className="mx-auto max-w-7xl px-5 py-24 sm:px-8 sm:py-32">
+    <section id="ingressos" className="relative overflow-hidden">
+      {urgent && (
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(55%_45%_at_50%_0%,rgba(245,166,35,0.13),transparent_60%)]" />
+      )}
+      <div className="relative mx-auto max-w-7xl px-5 py-24 sm:px-8 sm:py-32">
       <div className="text-center">
         <Reveal>
-          <Eyebrow className="justify-center">Ingressos · 1º Lote</Eyebrow>
+          <Eyebrow className="justify-center">{LOTE.eyebrow}</Eyebrow>
         </Reveal>
-        <SplitWords text="O menor preço é agora" className="mx-auto mt-6 max-w-3xl text-[clamp(2.2rem,5.5vw,4.5rem)]" />
+        <SplitWords text={LOTE.headline} className="mx-auto mt-6 max-w-3xl text-[clamp(2.2rem,5.5vw,4.5rem)]" />
         <Reveal delay={0.1}>
-          <p className="mx-auto mt-5 max-w-lg text-[var(--color-muted)]">
-            O 1º lote tem quantidade limitada e o valor sobe conforme as vagas se esgotam. Garanta seu lugar antes da
-            virada de lote.
-          </p>
+          <p className="mx-auto mt-5 max-w-lg text-[var(--color-muted)]">{LOTE.sub}</p>
         </Reveal>
+        {LOTE.urgency && (
+          <Reveal delay={0.15}>
+            <span className="badge-lote mt-7 inline-flex items-center gap-2.5 rounded-full px-5 py-2 font-mono text-[0.68rem] uppercase tracking-[0.2em]">
+              <span className="dot-urgency h-2 w-2 animate-urgency-pulse rounded-full" />
+              {LOTE.urgency}
+            </span>
+          </Reveal>
+        )}
       </div>
 
       <StaggerList className="mt-14 grid gap-5 lg:grid-cols-3" stagger={0.1}>
@@ -583,18 +657,33 @@ function Ingressos() {
             key={t.name}
             className={`relative flex h-full flex-col rounded-3xl border p-8 transition-transform duration-500 hover:-translate-y-1 ${
               t.featured
-                ? 'border-[var(--color-green-deep)] bg-gradient-to-b from-[var(--color-surface-2)] to-[var(--color-ink-2)] shadow-green'
+                ? urgent
+                  ? 'border-urgency bg-gradient-to-b from-[var(--color-surface-2)] to-[var(--color-ink-2)] shadow-urgency'
+                  : 'border-[var(--color-green-deep)] bg-gradient-to-b from-[var(--color-surface-2)] to-[var(--color-ink-2)] shadow-green'
                 : 'border-[var(--color-line)] bg-[var(--color-surface)] shadow-[0_14px_44px_-26px_rgba(10,31,60,0.4)]'
             }`}
           >
             {t.featured && (
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-green-grad px-4 py-1 font-mono text-[0.6rem] uppercase tracking-[0.2em] text-[#07172e]">
-                Mais procurado
+              <span
+                className={`absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-4 py-1 font-mono text-[0.6rem] uppercase tracking-[0.2em] text-[#07172e] ${
+                  urgent ? 'bg-urgency-grad' : 'bg-green-grad'
+                }`}
+              >
+                {urgent ? 'Melhor economia' : 'Mais procurado'}
               </span>
             )}
-            <span className="font-mono text-[0.62rem] uppercase tracking-[0.2em] text-[var(--color-green)]">{t.tier}</span>
+            <span
+              className={`font-mono text-[0.62rem] uppercase tracking-[0.2em] ${urgent ? 'text-urgency' : 'text-[var(--color-green)]'}`}
+            >
+              {t.tier}
+            </span>
             <h3 className="mt-2 text-3xl">{t.name}</h3>
-            <div className="mt-5 font-display text-5xl text-green-metal">{t.price}</div>
+            {t.prevPrice && (
+              <span className="mt-5 font-mono text-sm uppercase tracking-[0.12em] text-[var(--color-muted)] line-through decoration-[var(--color-urgency)]/70">
+                {t.prevPrice}
+              </span>
+            )}
+            <div className={`font-display text-5xl text-green-metal ${t.prevPrice ? 'mt-1' : 'mt-5'}`}>{t.price}</div>
             <span className="mt-1 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-[var(--color-muted)]">{t.note}</span>
             <ul className="mt-7 flex flex-1 flex-col gap-3">
               {t.perks.map((perk) => (
@@ -615,7 +704,7 @@ function Ingressos() {
 
       <Reveal delay={0.2}>
         <p className="mt-10 text-center font-mono text-[0.7rem] uppercase tracking-[0.18em] text-[var(--color-muted)]">
-          Pagamento seguro via Uticket · Ingresso digital enviado por e-mail
+          Pagamento seguro via Pix ou cartão · Ingresso digital com QR enviado por e-mail e WhatsApp
         </p>
       </Reveal>
       </div>
@@ -694,9 +783,7 @@ function FinalCTA() {
         </Reveal>
         <SplitWords text="Seu lugar no palco natural" className="mx-auto mt-6 max-w-3xl text-[clamp(2.6rem,7vw,6rem)]" />
         <Reveal delay={0.1}>
-          <p className="mx-auto mt-6 max-w-md text-[var(--color-muted)]">
-            O 1º lote não espera. Garanta o menor preço e esteja onde o físico de verdade é celebrado.
-          </p>
+          <p className="mx-auto mt-6 max-w-md text-[var(--color-muted)]">{LOTE.finalCta}</p>
           <div className="mt-10 flex justify-center">
             <GoldButton href="#ingressos" className="group">
               Garantir meu ingresso <Arrow />
@@ -768,6 +855,7 @@ export default function App() {
         <Categorias />
         <ParaQuem />
         <Faq />
+        <LotesTimeline />
         <Ingressos />
         <Localizacao />
         <FinalCTA />

@@ -357,7 +357,7 @@ export default function Checkout() {
           <p className="eyebrow">Ingresso não encontrado</p>
           <h1 className="mt-4 text-4xl">Ops, esse ingresso não existe</h1>
           <p className="mx-auto mt-4 max-w-sm text-[var(--color-muted)]">
-            O ingresso que você tentou acessar não está disponível. Volte e escolha uma das opções do 1º lote.
+            O ingresso que você tentou acessar não está disponível. Volte e escolha uma das opções disponíveis.
           </p>
           <Link
             to="/#ingressos"

@@ -25,6 +25,12 @@
   --color-bone: #eef3f9;
   --color-muted: #9bb1cd;
 
+  /* Âmbar de urgência — usado só nos elementos do 2º lote (selo, faixa,
+     "de → por"). Sinaliza escalada de preço sem competir com o verde da marca. */
+  --color-urgency: #f5a623;
+  --color-urgency-hi: #ffc861;
+  --color-urgency-deep: #b9741a;
+
   --shadow-green: 0 0 70px -14px rgba(134, 198, 60, 0.5);
 }
 
@@ -161,6 +167,33 @@
   }
   .animate-marquee { animation: marquee 30s linear infinite; }
 
+  /* ----- 2º lote: selo e faixa de urgência (âmbar) ----- */
+  .badge-lote {
+    color: var(--color-urgency-hi);
+    border: 1px solid color-mix(in srgb, var(--color-urgency) 45%, transparent);
+    background: color-mix(in srgb, var(--color-urgency) 12%, transparent);
+  }
+  .text-urgency { color: var(--color-urgency-hi); }
+  .dot-urgency { background: var(--color-urgency); }
+  .bg-urgency-grad { background: linear-gradient(160deg, #ffc861 0%, #f5a623 55%, #b9741a 100%); }
+  .shadow-urgency { box-shadow: 0 0 70px -14px rgba(245, 166, 35, 0.5); }
+  .border-urgency { border-color: var(--color-urgency-deep); }
+
+  /* faixa de anúncio (2º lote) no topo do header */
+  .lote-topbar {
+    background: linear-gradient(90deg,
+      color-mix(in srgb, var(--color-urgency) 16%, var(--color-ink)) 0%,
+      color-mix(in srgb, var(--color-urgency) 26%, var(--color-ink)) 50%,
+      color-mix(in srgb, var(--color-urgency) 16%, var(--color-ink)) 100%);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-urgency) 40%, transparent);
+  }
+
+  @keyframes urgencyPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.55; transform: scale(0.82); }
+  }
+  .animate-urgency-pulse { animation: urgencyPulse 1.8s ease-in-out infinite; }
+
   /* ----- Credenciamento (app de validação) ----- */
   @keyframes credScan {
     0% { transform: translateY(0); opacity: 0; }
@@ -182,6 +215,6 @@
   .animate-cred-spin { animation: credSpin 0.9s linear infinite; }
 
   @media (prefers-reduced-motion: reduce) {
-    .animate-marquee, .animate-cred-scan { animation: none; }
+    .animate-marquee, .animate-cred-scan, .animate-urgency-pulse { animation: none; }
   }
 }

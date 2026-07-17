@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { LOTE } from '../data'
 import { Arrow } from './ui'
 import { scrollTo } from '../lib/smooth'
 
@@ -18,10 +19,14 @@ export default function StickyCTA() {
     >
       <div className="mx-auto mb-3 flex max-w-2xl items-center justify-between gap-4 rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)]/92 px-4 py-3 shadow-2xl backdrop-blur-xl sm:px-5">
         <div className="leading-tight">
-          <p className="font-mono text-[0.6rem] uppercase tracking-[0.2em] text-[var(--color-green)]">
-            1º Lote · vagas limitadas
+          <p
+            className={`font-mono text-[0.6rem] uppercase tracking-[0.2em] ${
+              LOTE.badge ? 'text-urgency' : 'text-[var(--color-green)]'
+            }`}
+          >
+            {LOTE.sticky.kicker}
           </p>
-          <p className="font-display text-lg uppercase text-[var(--color-bone)]">Garanta o menor preço</p>
+          <p className="font-display text-lg uppercase text-[var(--color-bone)]">{LOTE.sticky.title}</p>
         </div>
         <a
           href="#ingressos"

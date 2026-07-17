@@ -50,15 +50,92 @@ export const getMapLinks = () => {
 // Taxa de serviço aplicada sobre o valor do ingresso (bilheteria).
 export const FEE_RATE = 0.1
 
-// Lotes de ingresso — 1º lote (preços reais da bilheteria Uticket)
-export const TICKETS = [
+// ============================================================
+// SISTEMA DE LOTES — vire a chave da campanha em um lugar só
+// ------------------------------------------------------------
+// • LOTE_ATIVO define qual lote a landing e o checkout exibem.
+// • O 1º lote continua intacto e reversível: basta voltar para 1.
+// • Preview sem editar código: acesse com ?lote=1 ou ?lote=2 na URL.
+//
+// ⚠️ O PREÇO COBRADO vem do BACKEND (tabela ticket_types), não daqui.
+//    Virar o lote de verdade = trocar LOTE_ATIVO para 2 AQUI
+//    + rodar backend/scripts/virar_lote_2.sql no banco.
+//    Veja VIRADA_LOTE_2.md na raiz.
+// ============================================================
+export const LOTE_ATIVO = 2
+
+export const LOTES = {
+  1: {
+    n: 1,
+    label: '1º Lote',
+    badge: null, // sem selo de urgência no 1º lote
+    eyebrow: 'Ingressos · 1º Lote',
+    headline: 'O menor preço é agora',
+    sub: 'O 1º lote tem quantidade limitada e o valor sobe conforme as vagas se esgotam. Garanta seu lugar antes da virada de lote.',
+    urgency: null,
+    heroCta: 'Garantir ingresso — 1º lote',
+    finalCta: 'O 1º lote não espera. Garanta o menor preço e esteja onde o físico de verdade é celebrado.',
+    sticky: { kicker: '1º Lote · vagas limitadas', title: 'Garanta o menor preço' },
+    faqPreco: {
+      q: 'Por que comprar agora no 1º lote?',
+      a: 'O 1º lote tem o menor preço da temporada e quantidade limitada. Conforme as vagas se esgotam, os valores sobem. Garantindo agora, você paga menos e assegura seu lugar.',
+    },
+    prices: { 'dia-1': 114, 'passaporte-2-dias': 189, 'dia-2': 114 },
+    previous: null,
+    marquee: null, // usa o marquee padrão
+    timeline: null, // sem seção de linha de lotes
+  },
+  2: {
+    n: 2,
+    label: '2º Lote',
+    badge: '2º Lote', // selo de urgência (âmbar) exibido na landing
+    eyebrow: 'Ingressos · 2º Lote',
+    headline: 'O 2º lote está no ar',
+    sub: 'O 1º lote esgotou. O 2º lote também é limitado e sobe até a virada final — garanta o seu antes do próximo reajuste.',
+    urgency: '1º lote esgotado · 2º lote com vagas limitadas',
+    heroCta: 'Garantir ingresso — 2º lote',
+    finalCta: 'O 2º lote não espera. A cada virada o valor sobe — garanta agora o melhor preço ainda disponível.',
+    sticky: { kicker: '2º Lote · últimas vagas', title: 'Garanta antes de subir' },
+    faqPreco: {
+      q: 'Por que comprar agora no 2º lote?',
+      a: 'O 1º lote já esgotou. O 2º lote é o menor preço ainda disponível e também é limitado — a cada virada de lote o valor sobe. Comprando agora você garante o melhor preço restante.',
+    },
+    prices: { 'dia-1': 135, 'passaporte-2-dias': 252, 'dia-2': 135 },
+    previous: { 'dia-1': 114, 'passaporte-2-dias': 189, 'dia-2': 114 }, // preço riscado ("de → por")
+    // Marquee com tom de urgência (só no 2º lote)
+    marquee: ['1º LOTE ESGOTADO', '2º LOTE NO AR', 'VAGAS LIMITADAS', 'O PREÇO SOBE ATÉ A VIRADA FINAL', 'GARANTA JÁ', '10·11 OUT 2026'],
+    // Linha de lotes — seção nova exibida só no 2º lote
+    timeline: {
+      eyebrow: 'A virada dos lotes',
+      headline: 'O preço só sobe daqui pra frente',
+      sub: 'Cada lote tem vagas limitadas. Quando esgota, o valor sobe — e não volta. Você está no melhor preço ainda disponível.',
+      steps: [
+        { label: '1º Lote', state: 'done', tag: 'Encerrado', desc: 'Esgotado', price: 'R$ 114 / R$ 189' },
+        { label: '2º Lote', state: 'current', tag: 'Você está aqui', desc: 'Disponível agora', price: 'R$ 135 / R$ 252' },
+        { label: 'Lote Final', state: 'next', tag: 'Em breve', desc: 'Maior preço', price: 'Aguarde' },
+      ],
+    },
+  },
+}
+
+/** Resolve o lote ativo: ?lote=1|2 na URL tem prioridade (preview), senão LOTE_ATIVO. */
+function resolveLote() {
+  if (typeof window !== 'undefined') {
+    const q = new URLSearchParams(window.location.search).get('lote')
+    if (q === '1' || q === '2') return Number(q)
+  }
+  return LOTE_ATIVO
+}
+
+/** Configuração do lote atualmente exibido (copy, preços, selo). */
+export const LOTE = LOTES[resolveLote()] ?? LOTES[1]
+
+// Estrutura fixa dos ingressos (não muda entre lotes: nomes, perks, destaque).
+const TICKET_BASE = [
   {
     slug: 'dia-1',
     tier: '10 Out · Sábado',
     name: 'Ingresso Dia 1',
-    price: 'R$ 114',
-    priceValue: 114,
-    note: '1º lote · + taxa',
     perks: [
       'Acesso ao dia 10/10',
       'Eliminatórias por categoria',
@@ -71,9 +148,6 @@ export const TICKETS = [
     slug: 'passaporte-2-dias',
     tier: '10 + 11 Out · Os 2 dias',
     name: 'Passaporte 2 Dias',
-    price: 'R$ 189',
-    priceValue: 189,
-    note: '1º lote · + taxa',
     perks: [
       'Acesso aos dois dias — 10 e 11/10',
       'Eliminatórias, finais e entrega de Pro Cards',
@@ -87,9 +161,6 @@ export const TICKETS = [
     slug: 'dia-2',
     tier: '11 Out · Domingo',
     name: 'Ingresso Dia 2',
-    price: 'R$ 114',
-    priceValue: 114,
-    note: '1º lote · + taxa',
     perks: [
       'Acesso ao dia 11/10',
       'Finais & entrega de Pro Cards',
@@ -99,6 +170,19 @@ export const TICKETS = [
     featured: false,
   },
 ]
+
+// Ingressos do lote ativo — preços e "preço anterior" (riscado) vêm de LOTE.
+export const TICKETS = TICKET_BASE.map((t) => {
+  const priceValue = LOTE.prices[t.slug]
+  const prevValue = LOTE.previous?.[t.slug] ?? null
+  return {
+    ...t,
+    priceValue,
+    price: `R$ ${priceValue}`,
+    prevPrice: prevValue ? `R$ ${prevValue}` : null,
+    note: `${LOTE.label} · + taxa`,
+  }
+})
 
 /** Busca um ingresso pelo slug da URL (/checkout/:slug). */
 export const getTicketBySlug = (slug) => TICKETS.find((t) => t.slug === slug)
@@ -129,12 +213,10 @@ export const FAQ = [
     q: 'O ingresso vale para os dois dias?',
     a: 'Sim. Todos os ingressos dão acesso aos dois dias (10 e 11 de outubro), incluindo competições e a área da Expo.',
   },
-  {
-    q: 'Por que comprar agora no 1º lote?',
-    a: 'O 1º lote tem o menor preço da temporada e quantidade limitada. Conforme as vagas se esgotam, os valores sobem. Garantindo agora, você paga menos e assegura seu lugar.',
-  },
+  // Pergunta de preço muda conforme o lote ativo (ver LOTE.faqPreco).
+  LOTE.faqPreco,
   {
     q: 'Como recebo meu ingresso?',
-    a: 'A compra é processada com segurança pela Uticket. Após o pagamento, o ingresso digital chega por e-mail e fica disponível na sua conta da plataforma.',
+    a: 'A compra é processada com segurança no nosso próprio checkout (Pix ou cartão). Após a confirmação do pagamento, o ingresso digital com QR Code é enviado por e-mail e WhatsApp.',
   },
 ]

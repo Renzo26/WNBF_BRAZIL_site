@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { EVENT } from '../data'
+import { EVENT, LOTE } from '../data'
 import { Arrow, GoldButton, ScrollLink } from './ui'
 
 const LINKS = [
@@ -27,6 +27,17 @@ export default function Nav() {
         solid ? 'border-b border-[var(--color-line)] bg-[var(--color-ink)]/85 backdrop-blur-xl' : 'border-b border-transparent'
       }`}
     >
+      {/* Faixa de anúncio — só no 2º lote */}
+      {LOTE.badge && (
+        <ScrollLink
+          to="#ingressos"
+          className="lote-topbar flex items-center justify-center gap-2.5 px-4 py-1.5 text-center font-mono text-[0.6rem] uppercase tracking-[0.22em] text-[var(--color-urgency-hi)] sm:text-[0.66rem]"
+        >
+          <span className="dot-urgency h-1.5 w-1.5 animate-urgency-pulse rounded-full" />
+          {LOTE.urgency}
+        </ScrollLink>
+      )}
+
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
         <ScrollLink to="#top" className="flex items-center">
           <img
