@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { EVENT, getTicketBySlug, serviceFee } from '../data'
 import { postCheckout } from '../lib/api'
+import { fbTrack } from '../lib/fpixel'
 import { buildTicketPng, makeQrDataUrl } from '../lib/ticket'
 import { brl, formatCard, formatCep, formatDoc, formatExpiry, formatPhone, onlyDigits } from '../lib/format'
 import {
@@ -209,6 +210,19 @@ export default function Checkout() {
     document.title = ticket ? `Checkout · ${ticket.name} — WNBF Brasil` : 'Checkout — WNBF Brasil'
   }, [ticket])
 
+  // Meta Pixel: início de checkout (funil de conversão do gestor de tráfego).
+  useEffect(() => {
+    if (ticket) {
+      fbTrack('InitiateCheckout', {
+        value: ticket.priceValue,
+        currency: 'BRL',
+        content_name: ticket.name,
+        content_ids: [ticket.slug],
+        content_type: 'product',
+      })
+    }
+  }, [ticket])
+
   // Gera o QR do ingresso assim que o pagamento é confirmado.
   // Usa o token ASSINADO vindo do backend (validável na portaria); se por algum
   // motivo não vier, cai para o id do pedido apenas como fallback visual.
@@ -218,6 +232,27 @@ export default function Checkout() {
       makeQrDataUrl(token).then(setTicketQr).catch(() => {})
     }
   }, [status, result])
+
+  // Meta Pixel: compra confirmada NA HORA (cartão). No Pix o cliente sai do site
+  // e a confirmação chega pelo webhook — por isso esse Purchase é enviado também
+  // pelo backend (Conversions API). O eventID (= pedido) deduplica os dois lados.
+  const purchaseSent = useRef(false)
+  useEffect(() => {
+    if (status === 'success' && result?.status === 'PAID' && !purchaseSent.current) {
+      purchaseSent.current = true
+      fbTrack(
+        'Purchase',
+        {
+          value: (result.total_amount ?? 0) / 100,
+          currency: 'BRL',
+          content_name: ticket?.name,
+          content_ids: [slug],
+          content_type: 'product',
+        },
+        { eventID: result.order_id },
+      )
+    }
+  }, [status, result, ticket, slug])
 
   // Autopreenchimento de endereço pela ViaCEP quando o CEP fica completo.
   useEffect(() => {
