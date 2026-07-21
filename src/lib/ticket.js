@@ -93,7 +93,7 @@ export async function buildTicketPng({ eventDate, ticketName, buyerName, orderId
   ctx.fillText('Apresente este QR Code na entrada do evento', W / 2, 950)
   ctx.fillStyle = '#56697f'
   ctx.font = '400 14px Arial, sans-serif'
-  ctx.fillText('Ingresso simulado · WNBF Brasil', W / 2, 984)
+  ctx.fillText('WNBF Brasil · Natural Fitness & Health 2026', W / 2, 984)
 
   return canvas.toDataURL('image/png')
 }

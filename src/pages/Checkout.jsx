@@ -920,7 +920,7 @@ export default function Checkout() {
               </p>
             )}
 
-            {/* botão: simular pagamento */}
+            {/* botão: finalizar pagamento */}
             <button
               type="submit"
               disabled={processing}
@@ -931,14 +931,14 @@ export default function Checkout() {
               ) : (
                 <>
                   {Ic.lock({ width: 18, height: 18 })}
-                  Simular pagamento · {brl(total)}
+                  {form.method === 'pix' ? 'Pagar com Pix' : 'Pagar'} · {brl(total)}
                 </>
               )}
             </button>
 
             <p className="mt-4 flex items-center justify-center gap-2 text-center font-mono text-[0.62rem] uppercase tracking-[0.14em] text-[var(--color-muted)]">
               {Ic.lock({ width: 13, height: 13 })}
-              Modo simulação · nenhuma cobrança real
+              Pagamento seguro · seus dados são protegidos
             </p>
           </form>
 
