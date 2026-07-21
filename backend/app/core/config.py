@@ -58,7 +58,11 @@ class Settings(BaseSettings):
         return self.jwt_secret or self.doc_hash_key
 
     # ---- Regras de negócio ----
-    fee_rate: float = 0.10            # taxa de serviço sobre o ingresso
+    # Taxa de serviço = repasse da taxa do gateway (Asaas), varia por método.
+    # Valores em centavos (jul/2026). A MESMA regra roda no front (src/data.js).
+    asaas_pix_fee_cents: int = 199    # Pix: R$ 1,99 fixo
+    asaas_card_fee_pct: float = 0.0299  # Cartão: 2,99% ...
+    asaas_card_fee_cents: int = 49    #        ... + R$ 0,49
     pix_expiration_minutes: int = 30  # validade do QR Pix
     terms_version: str = "2026-07-03" # versão dos termos/privacidade aceitos no checkout
 

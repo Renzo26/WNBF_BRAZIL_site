@@ -47,8 +47,27 @@ export const getMapLinks = () => {
   }
 }
 
-// Taxa de serviço aplicada sobre o valor do ingresso (bilheteria).
-export const FEE_RATE = 0.1
+// ============================================================
+// TAXA DE SERVIÇO — repassa a taxa real do gateway (Asaas)
+// ------------------------------------------------------------
+// Muda conforme o método: Pix é fixo; cartão é percentual + fixo.
+// A MESMA regra roda no backend (fonte da verdade do valor cobrado).
+// Taxas de jul/2026 (ver Comparativo_Gateways_WNBF).
+// ============================================================
+export const ASAAS_FEES = {
+  pixFixed: 1.99,   // R$ 1,99 por Pix
+  cardPct: 0.0299,  // 2,99% no crédito
+  cardFixed: 0.49,  // + R$ 0,49 no crédito
+}
+
+/** Taxa de serviço (Asaas) para um valor e método de pagamento, em reais. */
+export function serviceFee(priceValue, method = 'pix') {
+  if (method === 'card') {
+    const pct = Math.round(priceValue * ASAAS_FEES.cardPct * 100) / 100
+    return Math.round((pct + ASAAS_FEES.cardFixed) * 100) / 100
+  }
+  return ASAAS_FEES.pixFixed
+}
 
 // ============================================================
 // SISTEMA DE LOTES — vire a chave da campanha em um lugar só
@@ -180,7 +199,7 @@ export const TICKETS = TICKET_BASE.map((t) => {
     priceValue,
     price: `R$ ${priceValue}`,
     prevPrice: prevValue ? `R$ ${prevValue}` : null,
-    note: `${LOTE.label} · + taxa`,
+    note: LOTE.label,
   }
 })
 

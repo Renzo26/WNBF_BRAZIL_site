@@ -35,6 +35,15 @@ class CheckoutError(Exception):
         self.status_code = status_code
 
 
+def _service_fee(unit_cents: int, method: str) -> int:
+    """Taxa de serviço (repasse da taxa do Asaas) em centavos, por método.
+    Espelha src/data.js::serviceFee — o valor exibido no front tem que bater
+    com o cobrado aqui (que é a fonte da verdade)."""
+    if method == "card":
+        return round(unit_cents * _settings.asaas_card_fee_pct) + _settings.asaas_card_fee_cents
+    return _settings.asaas_pix_fee_cents
+
+
 def _card_brand(digits: str) -> str:
     if digits.startswith("4"):
         return "Visa"
@@ -65,7 +74,7 @@ class CheckoutService:
             raise CheckoutError("Ingresso indisponível", status_code=404)
 
         unit = ticket.unit_amount
-        fee = round(unit * _settings.fee_rate)
+        fee = _service_fee(unit, data.method)  # repasse da taxa do Asaas (por método)
         total = unit + fee
 
         kind = doc_kind(data.doc)  # já validado no schema

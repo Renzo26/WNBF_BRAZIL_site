@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { EVENT, FEE_RATE, getTicketBySlug } from '../data'
+import { EVENT, getTicketBySlug, serviceFee } from '../data'
 import { postCheckout } from '../lib/api'
 import { buildTicketPng, makeQrDataUrl } from '../lib/ticket'
 import { brl, formatCard, formatCep, formatDoc, formatExpiry, formatPhone, onlyDigits } from '../lib/format'
@@ -255,7 +255,7 @@ export default function Checkout() {
     }
   }, [form.cep])
 
-  const fee = ticket ? Math.round(ticket.priceValue * FEE_RATE * 100) / 100 : 0
+  const fee = ticket ? serviceFee(ticket.priceValue, form.method) : 0
   const total = ticket ? ticket.priceValue + fee : 0
 
   const errors = useMemo(() => {
