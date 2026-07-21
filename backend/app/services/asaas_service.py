@@ -63,7 +63,7 @@ class AsaasService:
                     description = errs[0].get("description", description)
             except Exception:
                 pass
-            logger.warning("Asaas %s %s -> %s", method, path, resp.status_code)
+            logger.warning("Asaas %s %s -> %s: %s", method, path, resp.status_code, description)
             raise AsaasError(description, status_code=400 if resp.status_code < 500 else 502)
 
         try:

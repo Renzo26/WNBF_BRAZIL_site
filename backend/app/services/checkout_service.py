@@ -219,7 +219,8 @@ class CheckoutService:
                     copy_paste=qr.get("payload"),
                     expires_at=qr.get("expirationDate"),
                 )
-            except AsaasError:
+            except AsaasError as exc:
+                logger.warning("QR Pix indisponível order=%s: %s", order.id, exc.message)
                 pix = PixOut()
 
         # ingressos já emitidos (pedido pago) — o front gera o QR a partir do qr_token

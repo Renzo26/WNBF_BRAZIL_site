@@ -375,6 +375,7 @@ export default function Checkout() {
     const paid = result.status === 'PAID'
     const pix = result.pix
     const showPixQr = !paid && result.method === 'PIX' && pix?.qr_image
+    const pixUnavailable = !paid && result.method === 'PIX' && !pix?.qr_image
     const copyPix = async () => {
       if (!pix?.copy_paste) return
       try {
@@ -413,11 +414,15 @@ export default function Checkout() {
           <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-green-grad text-[#07172e] shadow-green">
             {Ic.check({ width: 30, height: 30 })}
           </div>
-          <h1 className="mt-6 text-3xl sm:text-4xl">{paid ? 'Pagamento confirmado!' : 'Quase lá!'}</h1>
+          <h1 className="mt-6 text-3xl sm:text-4xl">
+            {paid ? 'Pagamento confirmado!' : pixUnavailable ? 'Pedido registrado' : 'Quase lá!'}
+          </h1>
           <p className="mt-3 text-[var(--color-muted)]">
             {paid
               ? `Tudo certo, ${form.name.split(' ')[0]}! Enviamos a confirmação e o ingresso para o seu e-mail e WhatsApp.`
-              : 'Escaneie o QR Code ou copie o código para concluir o pagamento via Pix.'}
+              : pixUnavailable
+                ? 'Não foi possível gerar o Pix agora. Seu pedido foi registrado — tente novamente em alguns instantes ou fale com a organização.'
+                : 'Escaneie o QR Code ou copie o código para concluir o pagamento via Pix.'}
           </p>
           <p className="mt-2 font-mono text-xs uppercase tracking-[0.18em] text-[var(--color-green)]">
             Pedido {result.order_id?.slice(0, 8)} · {result.total_formatted}
