@@ -16,9 +16,9 @@ class TicketCatalogItem(TypedDict):
 
 
 TICKET_CATALOG: list[TicketCatalogItem] = [
-    {"slug": "dia-1", "name": "Ingresso Dia 1", "tier": "10 Out · Sábado", "unit_amount": 11400},
-    {"slug": "passaporte-2-dias", "name": "Passaporte 2 Dias", "tier": "10 + 11 Out · Os 2 dias", "unit_amount": 18900},
-    {"slug": "dia-2", "name": "Ingresso Dia 2", "tier": "11 Out · Domingo", "unit_amount": 11400},
+    {"slug": "dia-1", "name": "Ingresso Dia 1", "tier": "10 Out · Sábado", "unit_amount": 13500},
+    {"slug": "passaporte-2-dias", "name": "Passaporte 2 Dias", "tier": "10 + 11 Out · Os 2 dias", "unit_amount": 25200},
+    {"slug": "dia-2", "name": "Ingresso Dia 2", "tier": "11 Out · Domingo", "unit_amount": 13500},
 ]
 
 CATALOG_BY_SLUG = {t["slug"]: t for t in TICKET_CATALOG}

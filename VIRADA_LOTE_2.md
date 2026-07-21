@@ -35,11 +35,12 @@ Isso afeta só a **exibição** — o preço cobrado continua o do banco.
 ## Estado atual do repositório
 
 - `LOTE_ATIVO = 2` em `src/data.js` → a landing **exibe** o 2º lote.
-- O banco **ainda cobra o 1º lote** (nenhuma migration de preço foi aplicada).
-
-Ou seja: pronto para revisar o visual do 2º lote. **Antes de fazer a virada
-oficial em produção**, siga os passos abaixo (ou, se precisar publicar mantendo
-1º lote no ar, volte `LOTE_ATIVO = 1`).
+- Catálogo (`backend/app/data/tickets.py`) já está com os valores do 2º lote
+  (13500 / 25200 / 13500) — novos ambientes já seedam no 2º lote.
+- A virada do preço COBRADO em produção é feita pela migration
+  `backend/alembic/versions/0003_virar_lote_2.py`, que roda no `alembic upgrade
+  head` do **deploy do backend**. Enquanto o backend de produção não for
+  deployado com essa revisão, o banco **ainda cobra o 1º lote**.
 
 ## Virar de verdade (na hora certa)
 
