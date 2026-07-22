@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import mask_email
 from app.models.order import Order
+from app.services.meta_capi_service import send_purchase_event
 from app.services.notify_service import send_confirmation
 from app.services.ticket_service import qr_token, ticket_service
 
@@ -25,6 +26,8 @@ async def fulfill_order(db: AsyncSession, order: Order) -> None:
     tickets = await ticket_service.issue_for_order(db, order)
     qr_tokens = [qr_token(t) for t in tickets]
     await send_confirmation(order, tickets=tickets, qr_tokens=qr_tokens)
+    # Meta Ads: confirma a venda (cobre Pix — o pixel do navegador não roda nesse caminho)
+    await send_purchase_event(order)
 
 
 async def cancel_order_tickets(db: AsyncSession, order: Order) -> None:

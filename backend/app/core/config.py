@@ -31,6 +31,13 @@ class Settings(BaseSettings):
     # Webhook do n8n que recebe a confirmação (para enviar WhatsApp, e-mail etc.)
     n8n_confirm_webhook_url: str = ""
 
+    # ---- Meta Ads: Conversions API (mede Purchase também no Pix) ----
+    # Mesmo ID do pixel usado no front (index.html). Só muda se trocar de pixel.
+    meta_pixel_id: str = "2079486772606007"
+    # Events Manager > Pixel > Configurações > API de Conversões > Gerar token.
+    # Vazio = desativado (não envia nada). NUNCA commitar — só no EasyPanel.
+    meta_capi_token: str = ""
+
     # ---- Criptografia de PII em repouso (LGPD) ----
     # Chave Fernet (base64 urlsafe de 32 bytes) para cifrar CPF/CNPJ, telefone, endereço
     encryption_key: str
