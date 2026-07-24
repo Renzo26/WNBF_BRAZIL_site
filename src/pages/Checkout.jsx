@@ -210,19 +210,6 @@ export default function Checkout() {
     document.title = ticket ? `Checkout · ${ticket.name} — WNBF Brasil` : 'Checkout — WNBF Brasil'
   }, [ticket])
 
-  // Meta Pixel: início de checkout (funil de conversão do gestor de tráfego).
-  useEffect(() => {
-    if (ticket) {
-      fbTrack('InitiateCheckout', {
-        value: ticket.priceValue,
-        currency: 'BRL',
-        content_name: ticket.name,
-        content_ids: [ticket.slug],
-        content_type: 'product',
-      })
-    }
-  }, [ticket])
-
   // Gera o QR do ingresso assim que o pagamento é confirmado.
   // Usa o token ASSINADO vindo do backend (validável na portaria); se por algum
   // motivo não vier, cai para o id do pedido apenas como fallback visual.
@@ -347,6 +334,15 @@ export default function Checkout() {
       first?.focus?.({ preventScroll: true })
       return
     }
+
+    // Meta Pixel: início real do pagamento (clique em "Pagar").
+    fbTrack('InitiateCheckout', {
+      value: total,
+      currency: 'BRL',
+      content_type: 'product',
+      content_ids: [slug],
+      content_name: ticket?.name,
+    })
 
     setApiError('')
     setStatus('processing')

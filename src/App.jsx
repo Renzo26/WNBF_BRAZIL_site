@@ -16,6 +16,7 @@ import {
 } from './components/ui'
 import { scrollTo, useSmoothScroll } from './lib/smooth'
 import { useRichVisuals } from './lib/device'
+import { fbTrack } from './lib/fpixel'
 import { CATEGORIES, EVENT, FAQ, LOCATION, LOTE, TICKETS, WHATSAPP_URL, getMapLinks } from './data'
 
 // Emblema 3D flutuante (carregado sob demanda — code splitting)
@@ -169,7 +170,18 @@ function Hero({ rich }) {
               {LOTE.urgency ?? `${LOTE.label} · vagas limitadas`}
             </span>
           )}
-          <GoldButton href="#ingressos" size="sm" className="group">
+          <GoldButton
+            href="#ingressos"
+            size="sm"
+            className="group"
+            onClick={() =>
+              fbTrack('AddToCart', {
+                content_type: 'product',
+                content_name: 'Ingressos Natural Fitness & Health 2026',
+                currency: 'BRL',
+              })
+            }
+          >
             {LOTE.heroCta} <Arrow />
           </GoldButton>
         </div>
@@ -695,7 +707,20 @@ function Ingressos() {
                 </li>
               ))}
             </ul>
-            <GoldButton href={`/checkout/${t.slug}`} size="sm" className="group mt-8 w-full">
+            <GoldButton
+              href={`/checkout/${t.slug}`}
+              size="sm"
+              className="group mt-8 w-full"
+              onClick={() =>
+                fbTrack('AddToCart', {
+                  content_type: 'product',
+                  content_ids: [t.slug],
+                  content_name: t.name,
+                  value: t.priceValue,
+                  currency: 'BRL',
+                })
+              }
+            >
               Comprar {t.name} <Arrow />
             </GoldButton>
           </div>
