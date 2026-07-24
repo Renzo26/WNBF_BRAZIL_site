@@ -175,7 +175,7 @@ function Hero({ rich }) {
             size="sm"
             className="group"
             onClick={() =>
-              fbTrack('AddToCart', {
+              fbTrack('ViewCart', {
                 content_type: 'product',
                 content_name: 'Ingressos Natural Fitness & Health 2026',
                 currency: 'BRL',
